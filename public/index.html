@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Wardrobe · 数字衣橱 MVP</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">👗</span>
+        <div>
+          <h1>AI Wardrobe</h1>
+          <p class="sub">AI 数字衣橱 · 第一阶段 MVP（上传 → Qwen 识别抠图 → 自动分类打标签 → 衣橱管理）</p>
+        </div>
+      </div>
+      <div id="modeBadge" class="badge badge-demo">DEMO 模式</div>
+    </header>
+
+    <main>
+      <!-- 上传区 -->
+      <section class="upload-card">
+        <div id="dropzone" class="dropzone">
+          <div class="dz-inner">
+            <div class="dz-icon">📸</div>
+            <p class="dz-title">拖拽照片到此处，或点击选择</p>
+            <p class="dz-hint">支持旅游照 / 自拍 / 全身照 / 镜子自拍 / 街拍（JPG·PNG·WEBP，最多 20 张）</p>
+          </div>
+          <input id="fileInput" type="file" accept="image/*" multiple hidden />
+        </div>
+        <div id="progress" class="progress hidden">
+          <div class="progress-bar"><span id="progressFill"></span></div>
+          <p id="progressText">处理中…</p>
+        </div>
+      </section>
+
+      <!-- 统计 -->
+      <section id="stats" class="stats hidden"></section>
+
+      <!-- 筛选 -->
+      <section id="filters" class="filters hidden">
+        <input id="search" class="f-input" type="text" placeholder="🔍 搜索颜色 / 风格 / 品牌…" />
+        <select id="fCategory" class="f-select"></select>
+        <select id="fColor" class="f-select"></select>
+        <select id="fSeason" class="f-select"></select>
+        <select id="fStyle" class="f-select"></select>
+        <button id="resetFilters" class="f-btn">重置</button>
+      </section>
+
+      <!-- 衣橱分区标题 -->
+      <section id="wardrobeHead" class="section-head hidden">
+        <h2>我的衣橱</h2>
+        <span id="countHint" class="count-hint"></span>
+      </section>
+
+      <!-- 衣橱画廊 -->
+      <section id="gallery" class="gallery"></section>
+      <div id="empty" class="empty">
+        <div class="empty-icon">🧺</div>
+        <p>衣橱还是空的，先上传几张穿搭照片吧。</p>
+      </div>
+    </main>
+
+    <!-- 详情弹窗 -->
+    <div id="modal" class="modal hidden">
+      <div class="modal-backdrop" data-close></div>
+      <div class="modal-card">
+        <button class="modal-close" data-close>×</button>
+        <div class="modal-body">
+          <div id="modalImg" class="modal-img"></div>
+          <div class="modal-info">
+            <h2 id="modalTitle">单品详情</h2>
+            <dl id="modalTags" class="tag-list"></dl>
+            <div class="modal-source">
+              <span>来源照片</span>
+              <img id="modalSource" alt="source" />
+            </div>
+            <button id="modalDelete" class="danger-btn">删除该单品</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
