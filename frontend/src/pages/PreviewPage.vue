@@ -31,21 +31,6 @@ const cards = computed(() =>
   session.segmented.map((it, i) => ({ ...it, _idx: i, _on: selected.value[i] }))
 )
 
-function downloadOne(url, name) {
-  const a = document.createElement('a')
-  a.href = url
-  a.download = name || 'item.png'
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-}
-
-function downloadSelected() {
-  session.segmented.forEach((it, i) => {
-    if (selected.value[i]) downloadOne(it.imageUrl, (it.id || 'item') + '.png')
-  })
-}
-
 async function commit() {
   const items = session.segmented.filter((_, i) => selected.value[i])
   if (!items.length) {
@@ -108,7 +93,6 @@ async function commit() {
     <div v-if="error" class="error">⚠️ {{ error }}</div>
 
     <div class="actions">
-      <button class="btn ghost" @click="downloadSelected" :disabled="chosenCount === 0">下载预览图</button>
       <button class="btn primary" :disabled="loading || chosenCount === 0" @click="commit">
         {{ loading ? '入库中…' : '确认入库' }}
       </button>
