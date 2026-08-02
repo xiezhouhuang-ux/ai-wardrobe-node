@@ -18,6 +18,12 @@ export async function deleteItem(id) {
   return r.json()
 }
 
+export async function getItem(id) {
+  const r = await fetch(`/api/items/${id}`)
+  if (!r.ok) throw new Error('获取单品详情失败')
+  return r.json()
+}
+
 // 第一步：上传图片，仅做 VL 视觉分析，返回候选单品（不分割、不入库）
 export async function analyzePhoto(file) {
   const fd = new FormData()

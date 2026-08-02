@@ -1,13 +1,13 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import * as api from '../api.js'
 import StatsBar from '../components/StatsBar.vue'
 import FilterBar from '../components/FilterBar.vue'
 import Gallery from '../components/Gallery.vue'
-import ItemDetailModal from '../components/ItemDetailModal.vue'
 
 const allItems = ref([])
-const current = ref(null)
+const router = useRouter()
 const filters = reactive({ search: '', category: '', color: '', season: '', style: '' })
 
 const filtered = computed(() => {
@@ -35,8 +35,11 @@ async function loadItems() {
 
 async function onDelete(id) {
   await api.deleteItem(id)
-  if (current.value && current.value.id === id) current.value = null
   await loadItems()
+}
+
+function openItem(it) {
+  router.push(`/item/${it.id}`)
 }
 
 onMounted(loadItems)
@@ -61,12 +64,10 @@ onMounted(loadItems)
 
     <StatsBar :items="allItems" />
 
-    <Gallery :items="filtered" @open="current = $event" />
+    <Gallery :items="filtered" @open="openItem" />
 
     <div v-if="filtered.length === 0" class="empty">
       {{ allItems.length === 0 ? '还没有单品，点下方 ＋ 上传一张穿搭照片开始吧～' : '没有符合筛选条件的单品' }}
     </div>
-
-    <ItemDetailModal :item="current" @close="current = null" @delete="onDelete" />
   </div>
 </template>

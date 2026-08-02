@@ -72,7 +72,7 @@ async function commit() {
         :key="c._idx"
         class="card"
         :class="{ off: !c._on }"
-        @click="selected[c._idx] = !selected[c._idx]"
+        @click="router.push(`/item/${c.id}`)"
       >
         <span class="cat-badge">{{ catLabel(c.category) }}</span>
         <div class="item-img" :style="{ backgroundImage: c.imageUrl ? `url('${c.imageUrl}')` : '' }"></div>
