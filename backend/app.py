@@ -29,7 +29,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import config
 from qwen import detect_clothing
-from segment import extract_item
+from segment import download_to_local, extract_item
 from store import add_items, add_photo, delete_item, get_item, get_items, get_stats
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -102,7 +102,18 @@ def api_process(photos: list[UploadFile] = File(..., description="照片文件�
         for meta in detections:
             out_name = _new_id("it") + ".png"
             out_path = Path(config.PATHS["ITEMS"]) / out_name
-            seg = extract_item(str(src), meta, str(out_path))
+            try:
+                seg = extract_item(str(src), meta)
+                if seg["imageUrl"].startswith(("http://", "https://")):
+                    download_to_local(seg["imageUrl"], str(out_path))
+                    image_url = f"/items/{out_name}"
+                    image_path = str(out_path)
+                else:
+                    image_url = seg["imageUrl"]
+                    image_path = seg["imagePath"]
+            except Exception as e:
+                logger.exception("分割失败：%s", e)
+                continue
             item = {
                 "id": _new_id("it"),
                 "category": meta["category"],
@@ -114,8 +125,8 @@ def api_process(photos: list[UploadFile] = File(..., description="照片文件�
                 "pattern": meta["pattern"],
                 "brand": meta["brand"],
                 "hasLogo": meta["hasLogo"],
-                "imageUrl": f"/items/{out_name}",
-                "imagePath": str(out_path),
+                "imageUrl": image_url,
+                "imagePath": image_path,
                 "transparent": seg["transparent"],
                 "segmentMethod": seg["segmentMethod"],
                 "sourcePhoto": photo_url,
@@ -166,10 +177,8 @@ def api_segment(payload: dict = Body(...)):
 
     out = []
     for meta in items_in:
-        out_name = _new_id("it") + ".png"
-        out_path = Path(config.PATHS["ITEMS"]) / out_name
         try:
-            seg = extract_item(str(src), meta, str(out_path))
+            seg = extract_item(str(src), meta)
         except Exception as e:
             logger.exception("分割失败：%s", e)
             continue
@@ -177,8 +186,8 @@ def api_segment(payload: dict = Body(...)):
             {
                 **meta,
                 "id": _new_id("it"),
-                "imageUrl": f"/items/{out_name}",
-                "imagePath": str(out_path),
+                "imageUrl": seg["imageUrl"],      # Qwen OSS 临时地址，供前端预览
+                "imagePath": "",                   # 入库下载后再填充本地路径
                 "transparent": seg["transparent"],
                 "segmentMethod": seg["segmentMethod"],
                 "sourcePhoto": photo_url,
@@ -189,13 +198,25 @@ def api_segment(payload: dict = Body(...)):
 
 @app.post("/api/commit")
 def api_commit(payload: dict = Body(...)):
-    """第三步：将确认的单品正式入库。"""
+    """第三步：将确认的单品正式入库（同时把 OSS 预览图下载保存为本地图片）。"""
     items = payload.get("items") or []
     if not items:
         raise HTTPException(status_code=400, detail="没有可入库的单品")
+
     now = int(time.time() * 1000)
     for it in items:
         it["createdAt"] = now
+        # 若 imageUrl 为远程 OSS 地址且尚未落地，则下载到本地 items/
+        url = it.get("imageUrl", "")
+        if url.startswith("http://") or url.startswith("https://"):
+            try:
+                out_name = _new_id("it") + ".png"
+                out_path = Path(config.PATHS["ITEMS"]) / out_name
+                download_to_local(url, str(out_path))
+                it["imageUrl"] = f"/items/{out_name}"
+                it["imagePath"] = str(out_path)
+            except Exception as e:
+                logger.exception("OSS 图片下载失败：%s", e)
     add_items(items)
     return {"ok": True, "count": len(items)}
 

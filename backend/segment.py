@@ -42,8 +42,12 @@ def normalize_to_png(image_bytes: bytes) -> bytes:
         return image_bytes
 
 
-def segment_with_qwen_image(image_bytes: bytes, meta: dict) -> bytes:
-    """调用 DashScope 多模态（Qwen 图像编辑）接口，把 meta 描述的单品从原图中抠出，返回图片字节。"""
+def segment_with_qwen_image(image_bytes: bytes, meta: dict) -> str:
+    """调用 DashScope 多模态（Qwen 图像编辑）接口，把 meta 描述的单品从原图中抠出。
+
+    仅返回 Qwen 返回的 OSS 临时图片地址（供前端预览），不在本阶段落盘。
+    图片落地由 /api/commit 阶段统一下载保存。
+    """
     if not API_KEY:
         raise RuntimeError("缺少 QWEN_API_KEY，无法调用 DashScope 多模态接口")
 
@@ -97,30 +101,44 @@ def segment_with_qwen_image(image_bytes: bytes, meta: dict) -> bytes:
     if not url:
         reason = output.get("reason") or data.get("message") or data.get("code") or "unknown"
         raise RuntimeError(f"DashScope 分割失败: {reason} | resp={data}")
-    img_resp = requests.get(url, timeout=120)
-    img_resp.raise_for_status()
-    return img_resp.content
+    # 直接返回 Qwen OSS 临时地址，供前端预览
+    return url
 
 
-def extract_item(src_path: str, meta: dict, out_path: str) -> dict:
+def download_to_local(oss_url: str, out_path: str) -> None:
+    """下载 Qwen OSS 临时图片并规整为白底 PNG 写入本地 out_path（入库阶段调用）。"""
+    resp = requests.get(oss_url, timeout=120)
+    resp.raise_for_status()
+    png = normalize_to_png(resp.content)
+    Path(out_path).write_bytes(png)
+
+
+def extract_item(src_path: str, meta: dict) -> dict:
     """
-    根据原图 src_path 与识别信息 meta，调用 DashScope 多模态接口生成分割结果写到 out_path（PNG）。
-    返回 { transparent: bool, segmentMethod: str }。
-    transparent 如实反映模型返回图是否带透明通道。
+    根据原图 src_path 与识别信息 meta，调用 DashScope 多模态接口得到分割结果。
+
+    本阶段仅返回 Qwen OSS 临时图片地址（imageUrl）供前端预览，不落盘。
+    本地落地在 /api/commit 阶段通过 download_to_local 完成。
     """
     original = Path(src_path).read_bytes()
 
     if not DEMO_MODE:
         try:
-            seg = segment_with_qwen_image(original, meta)
-            png = normalize_to_png(seg)
-            Path(out_path).write_bytes(png)
-            return {"transparent": False, "segmentMethod": "dashscope"}
+            oss_url = segment_with_qwen_image(original, meta)
+            return {
+                "imageUrl": oss_url,
+                "imagePath": "",
+                "transparent": False,
+                "segmentMethod": "dashscope",
+            }
         except Exception as e:
             logger.warning("DashScope 分割失败：%s", e)
             raise
 
-    # demo 模式：无 API Key，无法调用在线分割，直接落盘原图
-    png = normalize_to_png(original)
-    Path(out_path).write_bytes(png)
-    return {"transparent": False, "segmentMethod": "original"}
+    # demo 模式：无 API Key，无法调用在线分割，返回原图本地地址
+    return {
+        "imageUrl": "/uploads/" + Path(src_path).name,
+        "imagePath": str(src_path),
+        "transparent": False,
+        "segmentMethod": "original",
+    }
