@@ -57,7 +57,6 @@ async function commit() {
   try {
     await api.commitItems(items)
     done.value = true
-    downloadSelected()
     resetSession()
     setTimeout(() => router.push('/'), 1200)
   } catch (err) {
@@ -80,7 +79,7 @@ async function commit() {
       全选
     </label>
 
-    <div v-if="done" class="done-banner">✅ 已入库并下载预览图，正在返回衣橱…</div>
+    <div v-if="done" class="done-banner">✅ 已入库，正在返回衣橱…</div>
 
     <div class="gallery">
       <div
