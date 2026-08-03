@@ -247,7 +247,6 @@ function dateDiffDays(a, b) {
 onMounted(async () => {
   try { wardrobe.value = await api.getItems() } catch (e) { error.value = e.message }
   await loadOutfitsForMonth()
-  selectDate(today.getDate())
 })
 
 watch([year, month], async () => { await loadOutfitsForMonth() })
