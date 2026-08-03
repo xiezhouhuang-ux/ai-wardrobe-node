@@ -6,6 +6,7 @@ import PreviewPage from './pages/PreviewPage.vue'
 import ItemDetailPage from './pages/ItemDetailPage.vue'
 import CalendarPage from './pages/CalendarPage.vue'
 import TryonPage from './pages/TryonPage.vue'
+import TryonResultPage from './pages/TryonResultPage.vue'
 import MePage from './pages/MePage.vue'
 
 const routes = [
@@ -16,6 +17,7 @@ const routes = [
   { path: '/item/:id', name: 'item', component: ItemDetailPage, meta: { tab: 'home' } },
   { path: '/calendar', name: 'calendar', component: CalendarPage, meta: { tab: 'calendar' } },
   { path: '/tryon', name: 'tryon', component: TryonPage, meta: { tab: 'tryon' } },
+  { path: '/tryon/result', name: 'tryon-result', component: TryonResultPage, meta: { tab: 'tryon' } },
   { path: '/me', name: 'me', component: MePage, meta: { tab: 'me' } },
 ]
 

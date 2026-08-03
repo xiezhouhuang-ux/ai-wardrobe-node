@@ -186,3 +186,59 @@ def delete_outfit(date: str) -> bool:
         outfits.pop(idx)
         _write_db(db)
         return True
+
+
+# ---------------- 用户照片（全身试穿底图） ----------------
+
+def get_user_photo() -> dict | None:
+    """获取当前用户的全身照元信息，不存在返回 None。"""
+    with _lock:
+        return _read_db().get("userPhoto")
+
+
+def save_user_photo(photo: dict) -> None:
+    """保存/更新用户全身照元信息。"""
+    with _lock:
+        db = _read_db()
+        db["userPhoto"] = photo
+        _write_db(db)
+
+
+# ---------------- 试穿记录 ----------------
+
+def get_tryon_records() -> list:
+    """获取全部试穿记录，按时间倒序。"""
+    with _lock:
+        records = list(_read_db().get("tryonRecords", []))
+        records.sort(key=lambda r: r.get("createdAt", 0), reverse=True)
+        return records
+
+
+def save_tryon_record(record: dict) -> dict:
+    """保存一条试穿记录。"""
+    with _lock:
+        db = _read_db()
+        db.setdefault("tryonRecords", [])
+        db["tryonRecords"].append(record)
+        _write_db(db)
+        return record
+
+
+def delete_tryon_record(record_id: str) -> bool:
+    """删除一条试穿记录（同时删除本地结果图）。"""
+    with _lock:
+        db = _read_db()
+        records = db.setdefault("tryonRecords", [])
+        idx = next((i for i, r in enumerate(records) if r.get("id") == record_id), None)
+        if idx is None:
+            return False
+        removed = records.pop(idx)
+        # 删除本地结果图
+        img_path = removed.get("imagePath")
+        if img_path and os.path.exists(img_path):
+            try:
+                os.remove(img_path)
+            except OSError:
+                pass
+        _write_db(db)
+        return True

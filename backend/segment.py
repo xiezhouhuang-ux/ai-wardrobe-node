@@ -107,10 +107,28 @@ def segment_with_qwen_image(image_bytes: bytes, meta: dict) -> str:
 
 def download_to_local(oss_url: str, out_path: str) -> None:
     """下载 Qwen OSS 临时图片并规整为白底 PNG 写入本地 out_path（入库阶段调用）。"""
-    resp = requests.get(oss_url, timeout=120)
+    from urllib.parse import urlparse, quote, unquote
+
+    # 确保 URL 格式正确（处理可能的编码问题）
+    try:
+        parsed = urlparse(oss_url)
+        # 对路径中的非 ASCII 字符做编码
+        safe_path = quote(unquote(parsed.path), safe="/:@!$&'()*+,;=")
+        url = parsed._replace(path=safe_path).geturl()
+    except Exception:
+        url = oss_url
+
+    resp = requests.get(url, headers={
+        "User-Agent": "Mozilla/5.0 (compatible; AI-Wardrobe/1.0)",
+    }, timeout=120)
     resp.raise_for_status()
+
+    if not resp.content:
+        raise RuntimeError("OSS 返回空内容，图片可能已过期")
+
     png = normalize_to_png(resp.content)
     Path(out_path).write_bytes(png)
+    logger.info("已下载试穿结果图 -> %s (%d bytes)", out_path, len(png))
 
 
 def extract_item(src_path: str, meta: dict) -> dict:

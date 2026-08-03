@@ -41,9 +41,10 @@ PATHS = {
     "ITEMS": str(ROOT / "items"),
     "DATA": str(ROOT / "data"),
     "WARDROBE_DB": str(ROOT / "data" / "wardrobe.json"),
+    "TRYON_RESULTS": str(ROOT / "tryon_results"),
 }
 
 
 def ensure_dirs() -> None:
-    for key in ("UPLOADS", "ITEMS", "DATA"):
+    for key in ("UPLOADS", "ITEMS", "DATA", "TRYON_RESULTS"):
         os.makedirs(PATHS[key], exist_ok=True)

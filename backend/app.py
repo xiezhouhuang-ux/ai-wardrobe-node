@@ -35,13 +35,19 @@ from store import (
     add_photo,
     delete_item,
     delete_outfit,
+    delete_tryon_record,
     get_item,
     get_items,
     get_outfit,
     get_outfits,
     get_stats,
+    get_tryon_records,
+    get_user_photo,
     save_outfit,
+    save_tryon_record,
+    save_user_photo,
 )
+from tryon import virtual_tryon
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger("app")
@@ -258,6 +264,182 @@ def api_stats():
     return get_stats()
 
 
+# ---------------- 用户照片（AI 试穿底图） ----------------
+
+@app.get("/api/user/photo")
+def api_get_user_photo():
+    """获取当前用户的全身照信息。"""
+    p = get_user_photo()
+    if not p:
+        raise HTTPException(status_code=404, detail="尚未上传全身照")
+    return p
+
+
+@app.post("/api/user/photo")
+def api_upload_user_photo(photo: UploadFile = File(..., description="全身正面照")):
+    """上传/更新用户的全身正面照。"""
+    src = _save_upload(photo)
+    url = f"/uploads/{src.name}"
+    info = {
+        "url": url,
+        "path": str(src),
+        "createdAt": int(time.time() * 1000),
+    }
+    save_user_photo(info)
+    return {"ok": True, "photo": info}
+
+
+# ---------------- AI 试穿 ----------------
+
+@app.post("/api/tryon")
+def api_tryon(payload: dict = Body(...)):
+    """
+    AI 虚拟试穿：将衣橱单品「穿」到用户全身照上。
+
+    输入：
+        itemIds: [itemId, ...]   – 选中的衣橱单品 ID 列表
+
+    流程：
+        1. 从衣橱按 itemId 取真实单品本地图片
+        2. 从 store 取用户全身照
+        3. 调用 Qwen 多模态图像生成接口
+        4. 返回生成结果图片 URL
+    """
+    item_ids = payload.get("itemIds") or []
+    if not item_ids:
+        raise HTTPException(status_code=400, detail="至少选择一件单品")
+
+    # 取用户全身照
+    user_photo = get_user_photo()
+    if not user_photo:
+        raise HTTPException(status_code=400, detail="请先在「我的」页面上传您的全身正面照")
+
+    photo_path = user_photo.get("path")
+    if not photo_path or not Path(photo_path).exists():
+        raise HTTPException(status_code=404, detail="全身照文件丢失，请重新上传")
+
+    # 按 itemId 取真实单品
+    all_items = get_items()
+    item_map = {it["id"]: it for it in all_items}
+    selected = []
+    missing = []
+    for iid in item_ids:
+        it = item_map.get(iid)
+        if it:
+            selected.append(it)
+        else:
+            missing.append(iid)
+    if missing:
+        raise HTTPException(status_code=404, detail=f"单品不存在: {', '.join(missing)}")
+    if not selected:
+        raise HTTPException(status_code=400, detail="没有有效的单品")
+
+    # 读取用户全身照字节
+    person_bytes = Path(photo_path).read_bytes()
+
+    # 为试穿准备单品信息（需带本地图片路径）
+    item_images = []
+    for it in selected:
+        img_path = it.get("imagePath") or ""
+        if not img_path and (it.get("imageUrl") or "").startswith("/"):
+            img_path = str(Path(config.PATHS["ROOT"]) / it["imageUrl"].lstrip("/"))
+        if not img_path or not Path(img_path).exists():
+            logger.warning("单品 %s 图片缺失，跳过: %s", it["id"], img_path)
+            continue
+        item_images.append({
+            "imageUrl": img_path,
+            "category": it.get("category", ""),
+            "color": it.get("color", ""),
+            "style": it.get("style", ""),
+        })
+
+    if not item_images:
+        raise HTTPException(status_code=400, detail="没有可用的单品图片")
+
+    try:
+        result_url = virtual_tryon(person_bytes, item_images)
+    except Exception as e:
+        logger.exception("虚拟试穿失败")
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return {"ok": True, "resultUrl": result_url}
+
+
+# ---------------- 试穿记录（保存/查询/删除） ----------------
+
+@app.post("/api/tryon/save")
+def api_save_tryon(payload: dict = Body(...)):
+    """
+    保存当前试穿搭配记录：
+      - 将试穿结果图从 OSS 下载到本地 tryon_results/
+      - 保存搭配单品快照（从衣橱取真实数据）
+      - 记录生成时间
+    """
+    item_ids = payload.get("itemIds") or []
+    result_url = payload.get("resultUrl") or ""
+    if not item_ids:
+        raise HTTPException(status_code=400, detail="请至少选择一件单品")
+    if not result_url:
+        raise HTTPException(status_code=400, detail="缺少试穿结果图")
+
+    # 从衣橱取单品快照
+    all_items = get_items()
+    item_map = {it["id"]: it for it in all_items}
+    item_snapshots = []
+    for iid in item_ids:
+        it = item_map.get(iid)
+        if it:
+            item_snapshots.append({
+                "id": it["id"],
+                "category": it.get("category", ""),
+                "color": it.get("color", ""),
+                "style": it.get("style", ""),
+                "imageUrl": it.get("imageUrl", ""),
+                "name": f'{it.get("color", "")}·{it.get("category", "")}'.strip("·"),
+            })
+
+    # 下载结果图到本地
+    img_name = _new_id("tr") + ".png"
+    img_path = Path(config.PATHS["TRYON_RESULTS"]) / img_name
+    logger.info("开始下载试穿结果图: %s", result_url[:120])
+    try:
+        if result_url.startswith("http://") or result_url.startswith("https://"):
+            download_to_local(result_url, str(img_path))
+        else:
+            raise HTTPException(status_code=400, detail="结果图 URL 无效，请联系开发者")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("试穿结果图下载失败: url=%s error=%s", result_url[:200], e)
+        raise HTTPException(status_code=500, detail=f"保存结果图失败: {e}")
+
+    record = {
+        "id": _new_id("tr"),
+        "itemIds": item_ids,
+        "items": item_snapshots,
+        "resultUrl": f"/tryon_results/{img_name}",
+        "imagePath": str(img_path),
+        "createdAt": int(time.time() * 1000),
+    }
+    save_tryon_record(record)
+    return {"ok": True, "record": record}
+
+
+@app.get("/api/tryon/records")
+def api_tryon_records():
+    """获取所有已保存的试穿记录。"""
+    return get_tryon_records()
+
+
+@app.delete("/api/tryon/records/{record_id}")
+def api_delete_tryon(record_id: str):
+    """删除指定的试穿记录。"""
+    ok = delete_tryon_record(record_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="记录不存在")
+    return {"ok": True}
+
+
 # ---------------- 日历穿搭（outfits） ----------------
 
 @app.get("/api/outfits")
@@ -321,6 +503,7 @@ def api_delete_outfit(date: str):
 # ---------------- 静态资源 ----------------
 app.mount("/uploads", StaticFiles(directory=config.PATHS["UPLOADS"]), name="uploads")
 app.mount("/items", StaticFiles(directory=config.PATHS["ITEMS"]), name="items")
+app.mount("/tryon_results", StaticFiles(directory=config.PATHS["TRYON_RESULTS"]), name="tryon_results")
 
 # 生产构建后托管前端（存在 frontend/dist 时）
 _dist = Path(config.BACKEND_DIR).parent / "frontend" / "dist"
