@@ -141,3 +141,48 @@ def _url_to_path(url: str):
     # 形如 /items/xxx.png 或 /uploads/xxx.jpg
     rel = url.split("?", 1)[0].lstrip("/")
     return os.path.join(PATHS["ROOT"], rel)
+
+
+# ---------------- 日历穿搭（outfits） ----------------
+
+def get_outfits() -> list:
+    """返回全部日历穿搭记录。"""
+    with _lock:
+        return list(_read_db().get("outfits", []))
+
+
+def get_outfit(date: str):
+    """按日期（YYYY-MM-DD）取当天穿搭，不存在返回 None。"""
+    with _lock:
+        for o in _read_db().get("outfits", []):
+            if o.get("date") == date:
+                return o
+    return None
+
+
+def save_outfit(outfit: dict) -> dict:
+    """新增或更新某天的穿搭（按 date upsert）。返回保存后的记录。"""
+    with _lock:
+        db = _read_db()
+        db.setdefault("outfits", [])
+        date = outfit.get("date")
+        idx = next((i for i, o in enumerate(db["outfits"]) if o.get("date") == date), None)
+        if idx is None:
+            db["outfits"].append(outfit)
+        else:
+            db["outfits"][idx] = outfit
+        _write_db(db)
+        return outfit
+
+
+def delete_outfit(date: str) -> bool:
+    """删除某天的穿搭记录。"""
+    with _lock:
+        db = _read_db()
+        outfits = db.setdefault("outfits", [])
+        idx = next((i for i, o in enumerate(outfits) if o.get("date") == date), None)
+        if idx is None:
+            return False
+        outfits.pop(idx)
+        _write_db(db)
+        return True

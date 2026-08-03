@@ -24,4 +24,7 @@ const route = useRoute()
   margin: 0 auto;
   padding: 24px;
 }
+@media (max-width: 480px) {
+  .page { padding: 14px 12px; }
+}
 </style>

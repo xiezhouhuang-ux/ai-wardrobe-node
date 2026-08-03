@@ -30,7 +30,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import config
 from qwen import detect_clothing
 from segment import download_to_local, extract_item
-from store import add_items, add_photo, delete_item, get_item, get_items, get_stats
+from store import (
+    add_items,
+    add_photo,
+    delete_item,
+    delete_outfit,
+    get_item,
+    get_items,
+    get_outfit,
+    get_outfits,
+    get_stats,
+    save_outfit,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger("app")
@@ -245,6 +256,66 @@ def api_delete(item_id: str):
 @app.get("/api/stats")
 def api_stats():
     return get_stats()
+
+
+# ---------------- 日历穿搭（outfits） ----------------
+
+@app.get("/api/outfits")
+def api_outfits(date: str = None):
+    """获取日历穿搭：传 date 取某天，否则返回全部。"""
+    if date:
+        o = get_outfit(date)
+        if not o:
+            raise HTTPException(status_code=404, detail="当天没有穿搭记录")
+        return o
+    return get_outfits()
+
+
+@app.post("/api/outfits")
+def api_save_outfit(payload: dict = Body(...)):
+    """新增或更新某天的穿搭（按 date upsert）。
+
+    前端只传 {category, itemId, imageUrl?, name?}，后端根据 itemId 从真实衣橱
+    解析出持久化的本地图片地址与真实属性，确保落库数据是真实可长期访问的。
+    """
+    date = payload.get("date")
+    if not date:
+        raise HTTPException(status_code=400, detail="缺少 date")
+
+    raw_items = payload.get("items", []) or []
+    real_items = get_items()  # 真实衣橱单品（已归一化、含本地 imageUrl）
+    real_by_id = {it["id"]: it for it in real_items}
+
+    clean_items = []
+    for it in raw_items:
+        item_id = it.get("itemId")
+        real = real_by_id.get(item_id) if item_id else None
+        if not real:
+            # 缺少有效 itemId 的条目直接忽略，避免写入脏数据
+            continue
+        clean_items.append({
+            "itemId": item_id,
+            "category": real.get("category", it.get("category", "")),
+            "imageUrl": real.get("imageUrl") or it.get("imageUrl", ""),
+            "name": it.get("name") or real.get("color", "") or real.get("category", ""),
+        })
+
+    outfit = {
+        "date": date,
+        "items": clean_items,
+        "note": payload.get("note", ""),
+        "updatedAt": int(time.time() * 1000),
+    }
+    save_outfit(outfit)
+    return {"ok": True, "outfit": outfit}
+
+
+@app.delete("/api/outfits/{date}")
+def api_delete_outfit(date: str):
+    ok = delete_outfit(date)
+    if not ok:
+        raise HTTPException(status_code=404, detail="当天没有穿搭记录")
+    return {"ok": True}
 
 
 # ---------------- 静态资源 ----------------

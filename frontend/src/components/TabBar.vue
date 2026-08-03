@@ -9,6 +9,7 @@ const router = useRouter()
 
 const tabs = [
   { key: 'home', to: '/', icon: '🏠', label: '衣橱' },
+  { key: 'calendar', to: '/calendar', icon: '📅', label: '日历' },
   { key: 'tryon', to: '/tryon', icon: '🪄', label: 'AI试穿' },
   { key: 'me', to: '/me', icon: '👤', label: '我的' },
 ]
@@ -17,7 +18,7 @@ const tabs = [
 <template>
   <nav class="tabbar">
     <RouterLink
-      v-for="t in tabs.slice(0, 1)"
+      v-for="t in tabs.slice(0, 2)"
       :key="t.key"
       :to="t.to"
       class="tab"
@@ -33,7 +34,7 @@ const tabs = [
     </RouterLink>
 
     <RouterLink
-      v-for="t in tabs.slice(1)"
+      v-for="t in tabs.slice(2)"
       :key="t.key"
       :to="t.to"
       class="tab"

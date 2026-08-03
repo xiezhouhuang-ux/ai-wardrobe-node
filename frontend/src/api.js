@@ -24,6 +24,31 @@ export async function getItem(id) {
   return r.json()
 }
 
+// ---------------- 日历穿搭 outfits ----------------
+
+export async function getOutfits(date) {
+  const url = date ? `/api/outfits?date=${encodeURIComponent(date)}` : '/api/outfits'
+  const r = await fetch(url)
+  if (!r.ok) throw new Error('获取日历穿搭失败')
+  return r.json()
+}
+
+export async function saveOutfit(date, items, note = '') {
+  const r = await fetch('/api/outfits', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ date, items, note }),
+  })
+  if (!r.ok) throw new Error('保存穿搭失败')
+  return r.json()
+}
+
+export async function deleteOutfit(date) {
+  const r = await fetch(`/api/outfits/${encodeURIComponent(date)}`, { method: 'DELETE' })
+  if (!r.ok) throw new Error('删除穿搭失败')
+  return r.json()
+}
+
 // 第一步：上传图片，仅做 VL 视觉分析，返回候选单品（不分割、不入库）
 export async function analyzePhoto(file) {
   const fd = new FormData()
