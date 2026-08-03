@@ -169,18 +169,37 @@ const selectedDateLabel = computed(() => {
   return String(s || '')
 })
 
+// 真实衣橱单品映射（id -> 单品），用于统计时取一致的名称与图片
+const realMap = computed(() => {
+  const m = {}
+  for (const it of wardrobe.value || []) m[it.id] = it
+  return m
+})
+
+// 取单品真实信息：优先衣橱，回退到穿搭记录里的值
+function resolveItem(it) {
+  const id = it.itemId || it.imageUrl
+  const real = id ? realMap.value[id] : null
+  return {
+    id,
+    imageUrl: (real && real.imageUrl) || it.imageUrl || '',
+    name: (real && (real.color || real.name)) ? `${real.category || ''}·${real.color || ''}`.replace(/^·/, '') : (it.name || ''),
+    category: (real && real.category) || it.category || '',
+  }
+}
+
 const stats = computed(() => {
   const byDate = outfitsForMonth.value
   const all = Object.values(byDate)
 
-  // 本月最常穿搭：统计每件单品在本月穿搭中出现的次数，取最高者
-  const freq = {} // itemId -> { count, imageUrl, name, category }
+  // 本月最常穿搭：统计每件单品在本月穿搭中出现的次数（按真实单品归并），取最高者
+  const freq = {} // id -> { count, imageUrl, name, category }
   for (const o of all) {
     for (const it of (o.items || [])) {
-      const id = it.itemId || it.imageUrl
-      if (!id) continue
-      if (!freq[id]) freq[id] = { count: 0, imageUrl: it.imageUrl, name: it.name, category: it.category }
-      freq[id].count++
+      const r = resolveItem(it)
+      if (!r.id) continue
+      if (!freq[r.id]) freq[r.id] = { count: 0, imageUrl: r.imageUrl, name: r.name, category: r.category }
+      freq[r.id].count++
     }
   }
   let topItem = null
@@ -196,7 +215,6 @@ const stats = computed(() => {
   for (const id in freq) {
     let streak = 0
     let last = null
-    // 按日期排序后遍历
     const dates = Object.keys(byDate).sort()
     for (const ds of dates) {
       const has = (byDate[ds].items || []).some(it => (it.itemId || it.imageUrl) === id)
