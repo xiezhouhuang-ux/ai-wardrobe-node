@@ -524,7 +524,7 @@ app.mount("/items", StaticFiles(directory=config.PATHS["ITEMS"]), name="items")
 app.mount("/tryon_results", StaticFiles(directory=config.PATHS["TRYON_RESULTS"]), name="tryon_results")
 
 # 生产构建后托管前端（存在 frontend/dist 时）
-_dist = Path(config.BACKEND_DIR).parent / "frontend" / "dist"
+_dist = config.ROOT.parent / "frontend" / "dist"
 if _dist.exists():
     app.mount("/", StaticFiles(directory=str(_dist), html=True), name="frontend")
 

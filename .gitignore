@@ -1,11 +1,13 @@
 # 密钥与环境配置（含真实 API Key，切勿提交）
-.env
+backend/.env
 
 # 运行时产物
-logs/
-uploads/
-items/
-data/
+backend/logs/
+backend/uploads/
+backend/items/
+backend/data/
+backend/tryon_results/
+backend/.ai-wardrobe.pid
 
 # 依赖
 node_modules/

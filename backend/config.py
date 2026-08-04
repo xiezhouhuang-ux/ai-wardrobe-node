@@ -6,9 +6,9 @@ import os
 from pathlib import Path
 
 BACKEND_DIR = Path(__file__).resolve().parent
-ROOT = BACKEND_DIR.parent
+ROOT = BACKEND_DIR  # 所有资源文件统一放在 backend 目录下
 
-# 加载仓库根目录的 .env（不覆盖已存在的环境变量），与 Node 版 .env.config({ override: false }) 一致
+# 加载 backend 目录下的 .env（不覆盖已存在的环境变量）
 try:
     from dotenv import load_dotenv
 
