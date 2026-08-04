@@ -1,0 +1,70 @@
+<!--pages/me/me.wxml-->
+<view class="me-page page-with-nav">
+  <nav-bar title="我的"></nav-bar>
+
+  <view class="me-hero">
+    <view class="avatar">
+      <view class="avatar-text">{{initial}}</view>
+    </view>
+    <view class="me-info">
+      <view class="me-name">AI 衣橱用户</view>
+      <view class="me-sub">已陪伴你 {{days}} 天</view>
+    </view>
+  </view>
+
+  <view class="photo-card" bindtap="onGo" data-url="/pages/user-photo/user-photo">
+    <view wx:if="{{userPhoto}}" class="pc-thumb-wrap">
+      <image class="pc-thumb" src="{{userPhoto}}" mode="aspectFill"></image>
+    </view>
+    <view wx:else class="pc-thumb-wrap pc-empty">
+      <text class="pc-ico">📷</text>
+    </view>
+    <view class="pc-info">
+      <view class="pc-title">我的全身照</view>
+      <view class="pc-sub">{{userPhoto ? '已上传，点击更新' : '未上传，点击添加'}}</view>
+    </view>
+    <view class="pc-arrow">›</view>
+  </view>
+
+  <view class="stats-grid">
+    <view class="stat-card">
+      <view class="stat-num">{{stats.total || 0}}</view>
+      <view class="stat-label">单品总数</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-num">{{stats.outfits || 0}}</view>
+      <view class="stat-label">穿搭记录</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-num">{{stats.tryons || 0}}</view>
+      <view class="stat-label">试穿次数</view>
+    </view>
+  </view>
+
+  <view class="menu-card">
+    <view class="menu-row" bindtap="onGo" data-url="/pages/calendar/calendar">
+      <view class="menu-ico">📅</view>
+      <view class="menu-text">日历穿搭</view>
+      <view class="menu-arrow">›</view>
+    </view>
+    <view class="menu-row" bindtap="onGo" data-url="/pages/tryon/tryon">
+      <view class="menu-ico">🪄</view>
+      <view class="menu-text">AI 试穿</view>
+      <view class="menu-arrow">›</view>
+    </view>
+    <view class="menu-row" bindtap="onTapTryonHistory">
+      <view class="menu-ico">🖼</view>
+      <view class="menu-text">试穿记录</view>
+      <view class="menu-arrow">›</view>
+    </view>
+    <view class="menu-row" bindtap="onTapSettings">
+      <view class="menu-ico">⚙</view>
+      <view class="menu-text">关于</view>
+      <view class="menu-arrow">›</view>
+    </view>
+  </view>
+
+  <view class="version">v 1.0.0 · Made with ♥</view>
+
+  <view class="safe-bottom"></view>
+</view>

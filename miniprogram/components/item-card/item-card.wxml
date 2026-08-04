@@ -1,0 +1,19 @@
+<!--components/item-card/item-card.wxml-->
+<view class="item-card" bindtap="onTap">
+  <view class="item-cover">
+    <image class="item-image" src="{{image || item.image}}" mode="aspectFill" lazy-load></image>
+    <view class="item-cat-tag">{{item.category}}</view>
+  </view>
+  <view class="item-body">
+    <view class="item-name">{{item.name || item.category}}</view>
+    <view class="item-meta">
+      <view class="meta-dot" style="background:{{dotColor}};"></view>
+      <text class="meta-text">{{item.color}}</text>
+      <text class="meta-sep">·</text>
+      <text class="meta-text">{{item.style}}</text>
+    </view>
+    <view class="item-seasons" wx:if="{{seasons.length}}">
+      <text class="season-tag" wx:for="{{seasons}}" wx:key="*this">#{{item}}</text>
+    </view>
+  </view>
+</view>

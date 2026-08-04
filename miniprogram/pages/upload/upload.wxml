@@ -1,0 +1,4 @@
+<!--pages/upload/upload.wxml - 兼容入口，重定向到 capture-->
+<view class="page">
+  <nav-bar title="上传"></nav-bar>
+</view>

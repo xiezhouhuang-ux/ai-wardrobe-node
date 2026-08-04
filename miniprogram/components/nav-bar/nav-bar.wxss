@@ -1,0 +1,43 @@
+.nav-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--color-bg, #f5ede3);
+}
+.nav-inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 0 24rpx;
+}
+.nav-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: var(--color-text, #3a2a1f);
+  letter-spacing: 1rpx;
+}
+.nav-left {
+  position: absolute;
+  left: 24rpx;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+.nav-back-icon {
+  font-size: 48rpx;
+  font-weight: 300;
+  color: var(--color-text, #3a2a1f);
+  line-height: 1;
+  padding: 0 12rpx;
+}
+.nav-right {
+  position: absolute;
+  right: 24rpx;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}

@@ -1,0 +1,43 @@
+<!--pages/capture/capture.wxml-->
+<view class="capture-page page-with-nav">
+  <nav-bar title="添加单品" back="{{true}}"></nav-bar>
+
+  <!-- 大型虚线框：拍照/选图 -->
+  <view class="capture-frame {{tempPath ? 'has-image' : ''}} {{analyzing ? 'disabled' : ''}}" bindtap="{{analyzing ? '' : 'onPick'}}">
+    <block wx:if="{{tempPath}}">
+      <image class="capture-img" src="{{tempPath}}" mode="aspectFit"></image>
+      <view class="capture-overlay" wx:if="{{!analyzing}}">轻触重新选择</view>
+      <view class="capture-overlay" wx:else>识别中…</view>
+    </block>
+    <block wx:else>
+      <view class="capture-emoji">📷</view>
+      <view class="capture-text">拍照或从相册选择</view>
+      <view class="capture-hint">上传模特穿着衣服的照片，AI 自动抠出正面单品</view>
+    </block>
+  </view>
+
+  <!-- 三个提示胶囊 -->
+  <view class="capture-tips">
+    <view class="tip-pill">
+      <text class="tip-ico">✨</text>
+      <text>正面平铺或悬挂拍摄</text>
+    </view>
+    <view class="tip-pill">
+      <text class="tip-ico">🎯</text>
+      <text>AI 自动抠图去背景</text>
+    </view>
+    <view class="tip-pill">
+      <text class="tip-ico">🏷</text>
+      <text>自动识别品类颜色风格</text>
+    </view>
+  </view>
+
+  <!-- 底部主按钮 -->
+  <view class="capture-bottom">
+    <button class="btn btn-primary btn-cta {{tempPath ? '' : 'disabled'}}" bindtap="onConfirm" loading="{{analyzing}}" disabled="{{!tempPath || analyzing}}">
+      {{analyzing ? '识别中…' : '开始识别'}}
+    </button>
+  </view>
+
+  <view class="safe-bottom"></view>
+</view>

@@ -28,6 +28,9 @@ _COLOR_MAP_ZH = {
 
 def normalize_item_for_api(item: dict) -> dict:
     it = dict(item)
+    # 暴露稳定的字符串 id 给前端（详情页跳转依赖 item.id）
+    if "_id" in it:
+        it["id"] = str(it["_id"])
     cat = it.get("category")
     if cat in _CATEGORY_TO_ZH:
         it["category"] = _CATEGORY_TO_ZH[cat]

@@ -1,0 +1,55 @@
+{
+  "pages": [
+    "pages/home/home",
+    "pages/capture/capture",
+    "pages/confirm/confirm",
+    "pages/review/review",
+    "pages/detail/detail",
+    "pages/calendar/calendar",
+    "pages/tryon/tryon",
+    "pages/tryon-result/tryon-result",
+    "pages/tryon-records/tryon-records",
+    "pages/user-photo/user-photo",
+    "pages/me/me"
+  ],
+  "window": {
+    "navigationStyle": "custom",
+    "backgroundColor": "#f5ede3",
+    "backgroundTextStyle": "dark",
+    "enablePullDownRefresh": false
+  },
+  "tabBar": {
+    "color": "#a3a3a3",
+    "selectedColor": "#3a2a1f",
+    "backgroundColor": "#fffaf3",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "衣橱",
+        "iconPath": "images/tab-wardrobe.png",
+        "selectedIconPath": "images/tab-wardrobe-active.png"
+      },
+      {
+        "pagePath": "pages/calendar/calendar",
+        "text": "日历",
+        "iconPath": "images/tab-calendar.png",
+        "selectedIconPath": "images/tab-calendar-active.png"
+      },
+      {
+        "pagePath": "pages/tryon/tryon",
+        "text": "搭配",
+        "iconPath": "images/tab-tryon.png",
+        "selectedIconPath": "images/tab-tryon-active.png"
+      },
+      {
+        "pagePath": "pages/me/me",
+        "text": "我的",
+        "iconPath": "images/tab-me.png",
+        "selectedIconPath": "images/tab-me-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

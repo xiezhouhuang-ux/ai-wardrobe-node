@@ -1,0 +1,77 @@
+.result-page {
+  min-height: 100vh;
+  padding: 0 32rpx 220rpx;
+  background: var(--color-bg, #f5ede3);
+}
+.result-card {
+  position: relative;
+  background: var(--color-surface, #fffaf3);
+  border-radius: var(--radius-lg, 32rpx);
+  padding: 24rpx;
+  box-shadow: var(--shadow-card, 0 8rpx 24rpx rgba(58,42,31,0.06));
+  margin-bottom: 32rpx;
+}
+.result-img {
+  width: 100%;
+  height: 880rpx;
+  border-radius: var(--radius-md, 24rpx);
+  background: #efe5d7;
+}
+.result-tag {
+  position: absolute;
+  top: 40rpx;
+  left: 40rpx;
+  background: var(--color-accent, #c96b4a);
+  color: #fffaf3;
+  font-size: 22rpx;
+  padding: 6rpx 18rpx;
+  border-radius: 999rpx;
+}
+
+.action-row {
+  display: flex;
+  gap: 16rpx;
+}
+.flex-btn { flex: 1; }
+
+/* 搭配单品 */
+.outfit-section {
+  background: var(--color-surface, #fffaf3);
+  border-radius: var(--radius-md, 24rpx);
+  padding: 24rpx;
+  box-shadow: var(--shadow-card, 0 8rpx 24rpx rgba(58,42,31,0.06));
+  margin-bottom: 24rpx;
+}
+.outfit-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--color-text, #3a2a1f);
+  margin-bottom: 16rpx;
+}
+.outfit-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+.outfit-chip {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  background: var(--color-surface-2, #efe5d7);
+  border-radius: 12rpx;
+  padding: 10rpx 16rpx;
+}
+.outfit-chip-img {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 10rpx;
+  background: #d5c6b0;
+}
+.outfit-chip-name {
+  font-size: 24rpx;
+  color: var(--color-text, #3a2a1f);
+}
+.outfit-chip-color {
+  font-size: 22rpx;
+  color: var(--color-text-soft, #8b7a6a);
+}

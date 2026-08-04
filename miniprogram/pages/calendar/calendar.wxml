@@ -1,0 +1,106 @@
+<!--pages/calendar/calendar.wxml-->
+<view class="cal-page page-with-nav">
+  <nav-bar title="日历穿搭"></nav-bar>
+
+  <view class="cal-header">
+    <view class="cal-month">
+      <view class="cal-arrow" bindtap="onPrev">‹</view>
+      <view class="cal-month-text">{{year}}年{{month}}月</view>
+      <view class="cal-arrow" bindtap="onNext">›</view>
+    </view>
+    <view class="cal-week">
+      <view class="cal-wcell" wx:for="{{['日','一','二','三','四','五','六']}}" wx:key="*this">{{item}}</view>
+    </view>
+  </view>
+
+  <view class="cal-grid">
+    <view class="cal-cell mute" wx:for="{{leadingMute}}" wx:key="*this"></view>
+    <view class="cal-cell {{cell.has ? 'has' : ''}} {{selectedDate === cell.dateStr ? 'sel' : ''}}" wx:for="{{cells}}" wx:key="dateStr" wx:for-item="cell" bindtap="onSelect" data-d="{{cell.d}}">
+      <!-- 数字（小圆点形式）放左上 -->
+      <view class="cal-day {{cell.isToday ? 'today' : ''}}">{{cell.d}}</view>
+      <!-- 单品图环绕在数字旁边/下方 -->
+      <view class="outfit-preview n{{cell.images.length || 0}}" wx:if="{{cell.images.length}}">
+        <image class="oi" wx:for="{{cell.images}}" wx:for-item="u" wx:key="*this" src="{{u}}" mode="aspectFill" lazy-load></image>
+      </view>
+    </view>
+  </view>
+
+  <!-- 当日穿搭编辑面板 -->
+  <view class="cal-panel" wx:if="{{selectedDay}}">
+    <view class="panel-header">
+      <view class="panel-title">{{month}}月{{selectedDay}}日 穿搭</view>
+      <view class="panel-close" bindtap="onClosePanel">×</view>
+    </view>
+    <view class="panel-sub">按分类选择当天要穿的单品</view>
+
+    <!-- 已选单品预览条 -->
+    <view class="panel-preview" wx:if="{{hasDayOutfit}}">
+      <image class="pp-img" wx:for="{{slots}}" wx:key="key" wx:if="{{editing[item.key]}}" src="{{editing[item.key].imageUrl}}" mode="aspectFill"></image>
+    </view>
+
+    <!-- 分类槽位 -->
+    <view class="slots">
+      <view class="slot" wx:for="{{slots}}" wx:key="cat" data-cat="{{item.cat}}" bindtap="onPickSlot">
+        <block wx:if="{{editing[item.key]}}">
+          <image class="slot-thumb" src="{{editing[item.key].imageUrl}}" mode="aspectFill"></image>
+          <view class="slot-meta">
+            <view class="slot-cat">{{item.cat}}</view>
+            <view class="slot-name">{{editing[item.key].name}}</view>
+            <view class="slot-clr" catchtap="onClearSlot" data-key="{{item.key}}">移除</view>
+          </view>
+        </block>
+        <view class="slot-add" wx:else>
+          <view class="slot-add-ico">＋</view>
+          <view>选择{{item.cat}}</view>
+        </view>
+      </view>
+    </view>
+
+    <textarea class="note" value="{{note}}" bindinput="onNote" placeholder="备注（可选）" maxlength="200"></textarea>
+
+    <view class="panel-footer">
+      <button class="btn btn-ghost footer-btn" bindtap="onDeleteOutfit" wx:if="{{hasDayOutfit}}">删除</button>
+      <button class="btn btn-primary footer-btn" bindtap="onSaveOutfit" loading="{{saving}}">{{hasDayOutfit ? '更新穿搭' : '保存穿搭'}}</button>
+    </view>
+  </view>
+
+  <!-- 衣橱单品选择面板 -->
+  <view class="picker-mask" wx:if="{{pickerCat}}" bindtap="onClosePicker">
+    <view class="picker" catchtap="noop">
+      <view class="picker-handle"></view>
+      <view class="picker-head">
+        <view>选择{{pickerCat}}</view>
+        <view class="picker-close" bindtap="onClosePicker">×</view>
+      </view>
+      <scroll-view scroll-y class="picker-scroll">
+        <view class="picker-grid">
+          <view class="pick-item" wx:for="{{pickerItems}}" wx:key="id" data-id="{{item.id}}" bindtap="onPickItem">
+            <image class="pick-thumb" src="{{item.image}}" mode="aspectFill"></image>
+            <view class="pick-name">{{item.color}} {{item.style}}</view>
+          </view>
+        </view>
+        <view class="pick-empty" wx:if="{{pickerItems.length === 0}}">衣橱里还没有{{pickerCat}}单品</view>
+      </scroll-view>
+    </view>
+  </view>
+
+  <!-- 月度统计 -->
+  <view class="cal-stats">
+    <view class="stats-card">
+      <view class="stats-badge">👗</view>
+      <view class="stats-info">
+        <view class="stats-val">本月最常穿搭</view>
+        <view class="stats-sub">{{mostWorn ? mostWorn.label : '暂无数据'}}</view>
+      </view>
+    </view>
+    <view class="stats-card">
+      <view class="stats-badge">⭐</view>
+      <view class="stats-info">
+        <view class="stats-val">连续穿搭</view>
+        <view class="stats-sub">{{streakItem ? streakItem.label : '暂无数据'}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="safe-bottom"></view>
+</view>

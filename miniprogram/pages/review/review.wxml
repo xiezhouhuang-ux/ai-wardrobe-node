@@ -1,0 +1,71 @@
+<!--pages/review/review.wxml-->
+<view class="review-page page-with-nav">
+  <nav-bar title="确认入库" back="{{true}}"></nav-bar>
+
+  <view class="review-tip">确认识别结果并调整，完成后保存到衣橱</view>
+
+  <view class="item-list">
+    <view class="item-row {{item._on ? '' : 'row-off'}}" wx:for="{{items}}" wx:key="index">
+      <view class="row-cover">
+        <image class="row-img" src="{{item.previewUrl}}" mode="aspectFill"></image>
+        <view class="row-check {{item._on ? 'on' : ''}}" catchtap="toggleItem" data-index="{{index}}">
+          <view class="row-check-dot" wx:if="{{item._on}}"></view>
+        </view>
+      </view>
+      <view class="row-body">
+        <!-- 名称（可编辑） -->
+        <view class="row-line">
+          <view class="row-label">名称</view>
+          <input class="row-input" value="{{item.name}}" placeholder="给单品起个名字" placeholder-class="row-ph" data-idx="{{index}}" bindinput="onNameInput" />
+        </view>
+        <!-- 品类选择器 -->
+        <view class="row-line">
+          <view class="row-label">品类</view>
+          <picker mode="selector" range="{{categories}}" value="{{item.catIdx}}" data-idx="{{index}}" bindchange="onChangeCat">
+            <view class="row-value">{{categories[item.catIdx] || '上装'}}</view>
+          </picker>
+          <view class="row-arrow">▼</view>
+        </view>
+        <!-- 颜色选择器 -->
+        <view class="row-line">
+          <view class="row-label">颜色</view>
+          <picker mode="selector" range="{{colors}}" value="{{item.colorIdx}}" data-idx="{{index}}" bindchange="onChangeColor">
+            <view class="row-value">{{colors[item.colorIdx] || ''}}</view>
+          </picker>
+          <view class="row-arrow">▼</view>
+        </view>
+        <!-- 风格选择器 -->
+        <view class="row-line">
+          <view class="row-label">风格</view>
+          <picker mode="selector" range="{{styles}}" value="{{item.styleIdx}}" data-idx="{{index}}" bindchange="onChangeStyle">
+            <view class="row-value">{{styles[item.styleIdx] || ''}}</view>
+          </picker>
+          <view class="row-arrow">▼</view>
+        </view>
+        <!-- 季节标签 -->
+        <view class="row-seasons">
+          <view class="row-label">季节</view>
+          <view class="season-list">
+            <view
+              class="season-chip {{item.seasons.includes(s) ? 'chip-on' : ''}}"
+              wx:for="{{seasonsList}}"
+              wx:key="*this"
+              wx:for-item="s"
+              data-idx="{{index}}"
+              data-s="{{s}}"
+              bindtap="onToggleSeason"
+            >{{s}}</view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="footer">
+    <button class="btn btn-primary btn-large btn-block" bindtap="onSave" loading="{{saving}}">
+      确认入库 ({{checkedCount}} 件)
+    </button>
+  </view>
+
+  <view class="safe-bottom"></view>
+</view>

@@ -1,0 +1,29 @@
+<!--pages/tryon-records/tryon-records.wxml-->
+<view class="records-page page-with-nav">
+  <nav-bar title="试穿记录"></nav-bar>
+
+  <view wx:if="{{loading}}" class="records-loading">加载中…</view>
+
+  <view wx:elif="{{empty}}" class="records-empty">
+    <view class="empty-icon">👔</view>
+    <view class="empty-text">暂无保存的试穿搭配</view>
+    <view class="empty-sub">在 AI 试穿页面生成效果后可保存到这里</view>
+  </view>
+
+  <view wx:else class="records-list">
+    <view class="record-card" wx:for="{{records}}" wx:key="id" data-id="{{item.id}}" data-url="{{item.resultUrl}}" data-ids="{{item.itemIds}}" bindtap="onViewResult">
+      <image class="record-img" src="{{item.resultUrl}}" mode="aspectFill"></image>
+      <view class="record-body">
+        <view class="record-date">{{item.createdAt}}</view>
+        <view class="record-tags">
+          <text class="record-tag" wx:for="{{item.items || []}}" wx:key="id" wx:for-item="it">
+            {{it.name || it.category}}
+          </text>
+        </view>
+      </view>
+      <view class="record-del" data-id="{{item.id}}" catchtap="onDelete">×</view>
+    </view>
+  </view>
+
+  <view class="safe-bottom"></view>
+</view>

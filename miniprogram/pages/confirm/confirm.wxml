@@ -1,0 +1,69 @@
+<!--pages/confirm/confirm.wxml-->
+<view class="confirm-page page-with-nav">
+  <nav-bar title="确认识别结果" back="{{true}}"></nav-bar>
+
+  <scroll-view scroll-y class="confirm-scroll">
+    <!-- 原图 -->
+    <view class="photo-box">
+      <image class="photo-img" src="{{photoUrl}}" mode="aspectFit"></image>
+      <view class="tag">原图</view>
+    </view>
+
+    <!-- 候选单品列表 -->
+    <view class="sec-head">
+      <text class="sec-title">请选择要保留的单品</text>
+      <text class="sec-count" wx:if="{{phase === 'select'}}">已选 {{chosenCount}} / {{candidates.length}}</text>
+      <text class="sec-count" wx:else>处理中 {{overall}}%</text>
+    </view>
+
+    <view class="select-all" bindtap="toggleAll" wx:if="{{phase === 'select'}}">
+      <view class="checkbox {{allChecked ? 'on' : ''}}"></view>
+      <text>全选</text>
+    </view>
+
+    <view wx:if="{{candidates.length === 0}}" class="empty">
+      视觉模型未识别到单品，请返回重新上传。
+    </view>
+
+    <view
+      wx:for="{{candidates}}"
+      wx:key="_idx"
+      class="candidate {{item._on ? '' : 'off'}} {{item._status === 'done' ? 'row-done' : ''}}"
+      bindtap="toggleItem"
+      data-index="{{index}}"
+    >
+      <view class="checkbox {{item._on ? 'on' : ''}}"></view>
+      <view class="meta">
+        <view class="row1">
+          <text class="cate">{{item.categoryLabel}}</text>
+          <text class="color">{{item.color}}</text>
+        </view>
+        <view class="row2">{{item.style}} · {{item.season}} · {{item.material}}</view>
+      </view>
+      <!-- 单品处理状态 -->
+      <view class="cell-status">
+        <text wx:if="{{item._status === 'pending'}}" class="spinner"></text>
+        <text wx:elif="{{item._status === 'done'}}" class="cell-done">✓</text>
+      </view>
+    </view>
+
+    <view wx:if="{{error}}" class="error">⚠️ {{error}}</view>
+    <view class="bottom-gap"></view>
+  </scroll-view>
+
+  <!-- 底部：勾选阶段 = 操作按钮；处理阶段 = 进度条 -->
+  <view class="footer">
+    <block wx:if="{{phase === 'select'}}">
+      <button class="btn btn-ghost footer-btn-re" bindtap="onReupload">重新上传</button>
+      <button class="btn btn-primary footer-btn-go" bindtap="onConfirm" disabled="{{chosenCount === 0}}">
+        确认并分割单品
+      </button>
+    </block>
+    <block wx:else>
+      <view class="proc-bar">
+        <view class="proc-track"><view class="proc-fill" style="width: {{overall}}%;"></view></view>
+        <view class="proc-text">正在分割单品… {{overall}}%</view>
+      </view>
+    </block>
+  </view>
+</view>

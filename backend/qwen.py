@@ -134,8 +134,10 @@ def _norm_season(season) -> str:
 
 
 def normalize(raw: dict) -> dict:
+    cat_en = _norm_category(raw.get("category"))
+    cat_zh = CATEGORY_LABEL_ZH.get(cat_en, cat_en)
     return {
-        "category": _norm_category(raw.get("category")),
+        "category": cat_zh,
         "color": _norm_color(raw.get("color")),
         "season": _norm_season(raw.get("season")),
         "material": str(raw.get("material") or "未知").strip() or "未知",

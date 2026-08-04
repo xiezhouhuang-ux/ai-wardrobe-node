@@ -1,0 +1,13 @@
+<!--components/nav-bar/nav-bar.wxml-->
+<view class="nav-bar" style="padding-top:{{statusBarHeight}}px;height:{{navBarHeight}}px;">
+  <view class="nav-inner">
+    <view class="nav-left" bindtap="onBack" wx:if="{{back}}">
+      <text class="nav-back-icon">‹</text>
+    </view>
+    <view class="nav-title">{{title}}</view>
+    <view class="nav-right">
+      <slot name="right"></slot>
+    </view>
+  </view>
+</view>
+<view class="nav-placeholder" style="height:{{totalHeight}}px;"></view>

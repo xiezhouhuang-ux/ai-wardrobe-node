@@ -1,0 +1,64 @@
+<!--pages/home/home.wxml-->
+<view class="container page-with-nav">
+  <nav-bar title="我的衣橱"></nav-bar>
+
+  <!-- 标题区 -->
+  <view class="home-title">
+    <view class="home-time">{{greetText}}，</view>
+    <view class="home-name">开始搭配吧</view>
+  </view>
+
+  <!-- 统计条 -->
+  <view class="stats-bar">
+    <view class="stat-item">
+      <view class="stat-num">{{filtered.length}}</view>
+      <view class="stat-unit">件单品</view>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <view class="stat-num">{{categories.length}}</view>
+      <view class="stat-unit">个品类</view>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <view class="stat-num">{{stats.tryonCount || 0}}</view>
+      <view class="stat-unit">次试穿</view>
+    </view>
+  </view>
+
+  <!-- 搜索框 -->
+  <view class="search-box">
+    <text class="search-icon">⌕</text>
+    <input class="search-input" placeholder="搜索品类、颜色、风格…" placeholder-class="search-placeholder" bindinput="onSearch" value="{{keyword}}" confirm-type="search" />
+  </view>
+
+  <!-- 分类胶囊 -->
+  <scroll-view class="category-bar" scroll-x="true" enhanced="true" show-scrollbar="{{false}}">
+    <view class="cat-pill {{activeCat === '' ? 'cat-active' : ''}}" bindtap="onSelectCat" data-cat="">全部</view>
+    <view class="cat-pill {{activeCat === item ? 'cat-active' : ''}}" wx:for="{{categories}}" wx:key="*this" bindtap="onSelectCat" data-cat="{{item}}">{{item}}</view>
+  </scroll-view>
+
+  <!-- 标题行 + 添加 -->
+  <view class="section-row">
+    <view class="section-title">衣橱单品</view>
+    <view class="section-count">{{filtered.length}} 件</view>
+    <view class="add-link" bindtap="onTapAdd">+ 拍照添加</view>
+  </view>
+
+  <!-- 单品瀑布流 -->
+  <view class="grid">
+    <view class="grid-item" wx:for="{{filtered}}" wx:key="id" wx:for-index="i">
+      <item-card item="{{item}}" bind:tap="onTapItem" data-id="{{item.id}}" data-index="{{i}}"></item-card>
+    </view>
+    <view class="empty" wx:if="{{!loading && filtered.length === 0}}">
+      <view class="empty-emoji">🧺</view>
+      <view class="empty-title">衣橱空空如也</view>
+      <view class="empty-tip">点击右下角 ＋ 拍照开始添加单品</view>
+    </view>
+  </view>
+
+  <!-- 浮动添加 -->
+  <view class="fab" bindtap="onTapFab">+</view>
+
+  <view class="safe-bottom"></view>
+</view>

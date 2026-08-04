@@ -1,0 +1,27 @@
+<!--pages/user-photo/user-photo.wxml-->
+<view class="up-page page-with-nav">
+  <nav-bar title="我的全身照" back="{{true}}"></nav-bar>
+
+  <view class="up-tip">用于 AI 试穿，请上传正面、全身、光线清晰的照片。</view>
+
+  <view class="up-stage">
+    <block wx:if="{{hasPhoto}}">
+      <image class="up-img" src="{{userPhoto}}" mode="aspectFill"></image>
+      <view class="up-mask">
+        <view class="up-mask-btn" bindtap="onReupload">重新上传</view>
+      </view>
+    </block>
+
+    <view wx:else class="up-empty" bindtap="onChoose">
+      <view class="up-empty-ico">📷</view>
+      <view class="up-empty-title">上传全身正面照</view>
+      <view class="up-empty-sub">点击从相册选择或拍照</view>
+    </view>
+  </view>
+
+  <view wx:if="{{!hasPhoto}}" class="up-actions">
+    <button class="btn-primary up-btn" bindtap="onChoose" loading="{{uploading}}" disabled="{{uploading}}">
+      {{uploading ? '上传中…' : '选择照片'}}
+    </button>
+  </view>
+</view>

@@ -1,0 +1,28 @@
+<!--pages/tryon-result/tryon-result.wxml-->
+<view class="result-page page-with-nav">
+  <nav-bar title="试穿结果" back="{{true}}"></nav-bar>
+
+  <view class="result-card">
+    <image class="result-img" src="{{resultUrl}}" mode="aspectFit" show-menu-by-longpress="true"></image>
+    <view class="result-tag">AI 试穿</view>
+  </view>
+
+  <!-- 搭配单品 -->
+  <view class="outfit-section" wx:if="{{outfitItems.length}}">
+    <view class="outfit-title">搭配单品</view>
+    <view class="outfit-list">
+      <view class="outfit-chip" wx:for="{{outfitItems}}" wx:key="id">
+        <image class="outfit-chip-img" src="{{item.image}}" mode="aspectFill"></image>
+        <text class="outfit-chip-name">{{item.category || '上装'}}</text>
+        <text class="outfit-chip-color" wx:if="{{item.color}}">{{item.color}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="action-row">
+    <button class="btn btn-secondary flex-btn" bindtap="onSave">保存到相册</button>
+    <button class="btn btn-primary flex-btn" bindtap="onRetry">再试一次</button>
+  </view>
+
+  <view class="safe-bottom"></view>
+</view>

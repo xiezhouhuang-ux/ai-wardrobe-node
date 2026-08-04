@@ -1,0 +1,117 @@
+/* app.wxss - 全局设计系统（暖色调） */
+
+page {
+  /* 设计 token —— 暖米色系 */
+  --color-bg: #f5ede3;          /* 页面米色背景 */
+  --color-surface: #fffaf3;      /* 卡片浅色 */
+  --color-surface-2: #efe5d7;     /* 次级背景：标签/分组 */
+  --color-text: #3a2a1f;         /* 主文本：深棕 */
+  --color-text-soft: #8b7a6a;    /* 次要文本 */
+  --color-text-mute: #b9ad9c;    /* 辅助文本 */
+  --color-line: #e7dccb;         /* 描边线 */
+  --color-accent: #c96b4a;       /* 主色：橙棕 */
+  --color-accent-soft: #e6a48a;  /* 主色浅 */
+  --color-accent-deep: #a85a3d;  /* 主色深，按钮 hover/按下 */
+  --color-pill: #efe5d7;         /* 浅棕胶囊背景 */
+  --color-tag-bg: #f0e4d3;       /* 季节标签背景 */
+  --shadow-card: 0 8rpx 24rpx rgba(58, 42, 31, 0.06);
+  --radius-sm: 16rpx;
+  --radius-md: 24rpx;
+  --radius-lg: 32rpx;
+  --radius-pill: 999rpx;
+
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+  font-size: 28rpx;
+  line-height: 1.5;
+}
+
+/* 通用容器 */
+.container {
+  min-height: 100vh;
+  padding: 0 32rpx 200rpx;
+  box-sizing: border-box;
+}
+
+/* 顶部留白由 nav-bar 组件内部的占位 view 负责（不受页面级 padding 简写影响），
+   此处仅保留类名以便语义化，不再设置 padding-top，避免与页面级 padding 简写冲突。 */
+.page-with-nav {
+  /* 占位逻辑在组件内，无需在此预留 */
+}
+
+/* 文本工具 */
+.text-mute { color: var(--color-text-soft); }
+.text-soft { color: var(--color-text-mute); }
+.text-accent { color: var(--color-accent); }
+
+/* 通用按钮 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  font-weight: 500;
+  font-size: 30rpx;
+  padding: 0 36rpx;
+  height: 88rpx;
+  border: none;
+  line-height: 88rpx;
+  box-sizing: border-box;
+}
+.btn-primary {
+  background: var(--color-accent);
+  color: #fff;
+}
+.btn-primary::after { border: none; }
+.btn-secondary {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+.btn-secondary::after { border: none; }
+.btn-ghost {
+  background: transparent;
+  color: var(--color-accent);
+  border: 2rpx solid var(--color-line);
+}
+.btn-ghost::after { border: none; }
+.btn-outline {
+  background: transparent;
+  color: var(--color-accent);
+  border: 2rpx solid var(--color-accent);
+}
+.btn-outline::after { border: none; }
+.btn-outline.btn-pressed,
+.btn-outline:active {
+  background: rgba(201, 107, 74, 0.08);
+}
+.btn-block {
+  width: 100%;
+}
+
+/* 卡片 */
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+/* 通用横向胶囊按钮组 */
+.pill {
+  padding: 14rpx 32rpx;
+  border-radius: var(--radius-pill);
+  background: var(--color-pill);
+  color: var(--color-text-soft);
+  font-size: 26rpx;
+  white-space: nowrap;
+  transition: all .15s ease;
+}
+.pill-active {
+  background: var(--color-text);
+  color: #fffaf3;
+}
+
+/* 安全区占位 */
+.safe-bottom {
+  height: env(safe-area-inset-bottom);
+}
