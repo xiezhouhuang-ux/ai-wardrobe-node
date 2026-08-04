@@ -59,12 +59,12 @@ export async function analyzePhoto(file) {
   return data
 }
 
-// 第二步：对确认的单品做分割，返回预览图（不入库）
-export async function segmentItems(photoUrl, items) {
+// 第二步：对确认的单品做分割，每次只上传一件（返回预览图，不入库）
+export async function segmentOne(photoUrl, item) {
   const r = await fetch('/api/segment', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ photoUrl, items }),
+    body: JSON.stringify({ photoUrl, item }),
   })
   const data = await r.json()
   if (!r.ok) throw new Error(data.detail || '分割失败')

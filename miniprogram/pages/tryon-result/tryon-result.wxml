@@ -20,8 +20,13 @@
   </view>
 
   <view class="action-row">
-    <button class="btn btn-secondary flex-btn" bindtap="onSave">保存到相册</button>
-    <button class="btn btn-primary flex-btn" bindtap="onRetry">再试一次</button>
+    <button class="btn btn-secondary flex-btn" bindtap="onSaveToAlbum">保存到相册</button>
+    <button class="btn btn-primary flex-btn" bindtap="onConfirmSave" disabled="{{saving || saved}}">
+      {{saved ? '已保存' : (saving ? '保存中…' : '确认保存')}}
+    </button>
+  </view>
+  <view class="action-row" style="margin-top: 16rpx;">
+    <button class="btn btn-ghost flex-btn" bindtap="onRetry">再试一次</button>
   </view>
 
   <view class="safe-bottom"></view>

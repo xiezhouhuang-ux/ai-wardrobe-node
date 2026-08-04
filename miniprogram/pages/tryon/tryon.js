@@ -126,9 +126,8 @@ Page({
     try {
       const r = await api.tryOn(ids)
       const resultUrl = this.fixImage(r.resultUrl)
-      await api.saveTryOnRecord(ids, r.resultUrl)
       wx.navigateTo({
-        url: `/pages/tryon-result/tryon-result?resultUrl=${encodeURIComponent(resultUrl)}&ids=${encodeURIComponent(JSON.stringify(ids))}`
+        url: `/pages/tryon-result/tryon-result?resultUrl=${encodeURIComponent(r.resultUrl)}&ids=${encodeURIComponent(JSON.stringify(ids))}`
       })
     } catch (e) {
       this.setData({ error: e.message || '试穿生成失败，请重试' })

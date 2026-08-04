@@ -34,6 +34,12 @@
 }
 .flex-btn { flex: 1; }
 
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-soft, #8b7a6a);
+  border: 1px solid var(--color-text-soft, #8b7a6a);
+}
+
 /* 搭配单品 */
 .outfit-section {
   background: var(--color-surface, #fffaf3);

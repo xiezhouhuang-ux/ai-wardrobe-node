@@ -8,6 +8,9 @@ import { catLabel } from '../constants.js'
 const router = useRouter()
 const loading = ref(false)
 const error = ref('')
+// 每件单品处理状态：idle | pending | done
+const status = ref([])
+const overall = ref(0)
 
 // 候选单品勾选状态（按索引），默认全选
 const selected = ref([])
@@ -19,6 +22,7 @@ onMounted(() => {
     return
   }
   selected.value = session.candidates.map(() => true)
+  status.value = session.candidates.map(() => 'idle')
 })
 
 const allChecked = computed({
@@ -29,7 +33,7 @@ const allChecked = computed({
 const chosenCount = computed(() => selected.value.filter(Boolean).length)
 
 const candidatesView = computed(() =>
-  session.candidates.map((c, i) => ({ ...c, _idx: i, _on: selected.value[i] }))
+  session.candidates.map((c, i) => ({ ...c, _idx: i, _on: selected.value[i], _status: status.value[i] }))
 )
 
 async function goSegment() {
@@ -40,9 +44,23 @@ async function goSegment() {
   }
   error.value = ''
   loading.value = true
+  overall.value = 0
+  const chosenIdx = session.candidates
+    .map((_, i) => i)
+    .filter((i) => selected.value[i])
+  const segmented = []
   try {
-    const data = await api.segmentItems(session.photoUrl, items)
-    session.segmented = data.items || []
+    for (let k = 0; k < chosenIdx.length; k++) {
+      const i = chosenIdx[k]
+      status.value[i] = 'pending'
+      overall.value = Math.round((k / chosenIdx.length) * 100)
+      // 每次只上传一件单品进行分割
+      const seg = await api.segmentOne(session.photoUrl, session.candidates[i])
+      segmented.push({ ...session.candidates[i], ...seg })
+      status.value[i] = 'done'
+      overall.value = Math.round(((k + 1) / chosenIdx.length) * 100)
+    }
+    session.segmented = segmented
     router.push('/preview')
   } catch (err) {
     error.value = err.message
@@ -79,10 +97,10 @@ async function goSegment() {
           v-for="c in candidatesView"
           :key="c._idx"
           class="candidate"
-          :class="{ off: !c._on }"
-          @click="selected[c._idx] = !selected[c._idx]"
+          :class="{ off: !c._on, 'row-done': c._status === 'done' }"
+          @click="!loading && (selected[c._idx] = !selected[c._idx])"
         >
-          <input type="checkbox" :checked="c._on" @click.stop="selected[c._idx] = !selected[c._idx]" />
+          <input type="checkbox" :checked="c._on" :disabled="loading" @click.stop="selected[c._idx] = !selected[c._idx]" />
           <div class="meta">
             <div class="row1">
               <b>{{ catLabel(c.category) }}</b>
@@ -90,12 +108,19 @@ async function goSegment() {
             </div>
             <div class="row2">{{ c.style }} · {{ c.season }} · {{ c.material }}</div>
           </div>
+          <span v-if="c._status === 'pending'" class="spinner"></span>
+          <span v-else-if="c._status === 'done'" class="cell-done">✓</span>
         </div>
 
         <div v-if="error" class="error">⚠️ {{ error }}</div>
 
+        <div v-if="loading" class="proc-bar">
+          <div class="proc-track"><div class="proc-fill" :style="{ width: overall + '%' }"></div></div>
+          <div class="proc-text">正在分割单品… {{ overall }}%</div>
+        </div>
+
         <div class="actions">
-          <button class="btn ghost" @click="router.push('/upload')">重新上传</button>
+          <button class="btn ghost" :disabled="loading" @click="router.push('/upload')">重新上传</button>
           <button class="btn primary" :disabled="loading || chosenCount === 0" @click="goSegment">
             {{ loading ? '分割中…' : '确认并分割单品' }}
           </button>
@@ -123,12 +148,25 @@ async function goSegment() {
 }
 .candidate.off { opacity: .5; }
 .candidate:hover { border-color: var(--accent); }
+.candidate.row-done { border-color: #2bb673; }
 .meta { flex: 1; }
 .row1 { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 .row2 { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.spinner {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid var(--line); border-top-color: var(--accent);
+  animation: spin .7s linear infinite; flex: none;
+}
+.cell-done { color: #2bb673; font-weight: 700; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .actions { display: flex; gap: 10px; margin-top: 14px; }
 .btn { height: 42px; border-radius: 10px; padding: 0 18px; font-size: 14px; cursor: pointer; border: 1px solid var(--line); background: #fff; }
 .btn.primary { background: var(--accent); color: #fff; border: none; flex: 1; }
 .btn.primary:disabled { opacity: .5; cursor: not-allowed; }
+.btn.ghost:disabled { opacity: .5; cursor: not-allowed; }
 .error { color: #e23b3b; font-size: 13px; margin-top: 8px; }
+.proc-bar { margin-top: 14px; }
+.proc-track { height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.proc-fill { height: 100%; background: var(--accent); transition: width .3s; }
+.proc-text { font-size: 12px; color: var(--muted); margin-top: 6px; }
 </style>

@@ -4,19 +4,24 @@ const fixImage = require('../../utils/image.js')
 
 Page({
   data: {
-    resultUrl: '',
+    resultUrl: '',      // 显示用（经过 fixImage 处理）
+    saveUrl: '',        // 保存用（本地路径）
     ids: [],
-    outfitItems: []  // 搭配单品详情
+    outfitItems: [],    // 搭配单品详情
+    saving: false,
+    saved: false
   },
   onLoad(q) {
+    const saveUrl = decodeURIComponent(q.resultUrl || '')
     this.setData({
-      resultUrl: decodeURIComponent(q.resultUrl || ''),
+      resultUrl: fixImage(saveUrl),
+      saveUrl,
       ids: q.ids ? JSON.parse(decodeURIComponent(q.ids)) : []
     })
     this.loadOutfitItems()
   },
 
-  fixImage(u) {
+  fixImg(u) {
     return fixImage(u)
   },
 
@@ -26,14 +31,35 @@ Page({
       const items = await api.getItems()
       const map = {}
       for (const it of (items || [])) {
-        map[it.id] = { ...it, image: this.fixImage(it.imageUrl || it.image) }
+        map[it.id] = { ...it, image: this.fixImg(it.imageUrl || it.image) }
       }
       const outfitItems = this.data.ids.map(id => map[id] || { id, name: '单品', category: '上装', image: '' }).filter(it => it.id)
       this.setData({ outfitItems })
     } catch (e) { /* ignore */ }
   },
 
-  onSave() {
+  // 确认保存：将本地结果图归档到数据库记录
+  async onConfirmSave() {
+    if (this.data.saving || this.data.saved) return
+    const { saveUrl, ids } = this.data
+    if (!saveUrl || !ids.length) {
+      wx.showToast({ title: '缺少结果图或单品信息', icon: 'none' })
+      return
+    }
+    this.setData({ saving: true })
+    try {
+      await api.saveTryOnRecord(ids, saveUrl)
+      this.setData({ saved: true })
+      wx.showToast({ title: '已保存到试穿记录', icon: 'success' })
+    } catch (e) {
+      wx.showToast({ title: e.message || '保存失败', icon: 'none' })
+    } finally {
+      this.setData({ saving: false })
+    }
+  },
+
+  // 保存到手机相册
+  onSaveToAlbum() {
     if (!this.data.resultUrl) return
     wx.showLoading({ title: '保存中…' })
     wx.downloadFile({
@@ -49,5 +75,6 @@ Page({
       complete: () => wx.hideLoading()
     })
   },
+
   onRetry() { wx.navigateBack() }
 })

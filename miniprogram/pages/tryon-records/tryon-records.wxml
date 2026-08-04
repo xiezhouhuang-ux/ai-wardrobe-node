@@ -1,6 +1,6 @@
 <!--pages/tryon-records/tryon-records.wxml-->
 <view class="records-page page-with-nav">
-  <nav-bar title="试穿记录"></nav-bar>
+  <nav-bar title="试穿记录" back="{{true}}"></nav-bar>
 
   <view wx:if="{{loading}}" class="records-loading">加载中…</view>
 

@@ -182,35 +182,34 @@ def api_analyze(photos: list[UploadFile] = File(..., description="照片文件�
 
 @app.post("/api/segment")
 def api_segment(payload: dict = Body(...)):
-    """第二步：对确认的单品做分割，生成预览图（不入库）。"""
+    """第二步：对确认的单品做分割，生成预览图（不入库）。
+
+    每次只上传一件单品：接收 photoUrl + 单个 item 元数据，返回该单品的分割结果。
+    """
     photo_url = payload.get("photoUrl")
-    items_in = payload.get("items") or []
-    if not photo_url or not items_in:
-        raise HTTPException(status_code=400, detail="缺少 photoUrl 或 items")
+    meta = payload.get("item")
+    if not photo_url or not meta:
+        raise HTTPException(status_code=400, detail="缺少 photoUrl 或 item")
 
     src = Path(config.PATHS["UPLOADS"]) / Path(photo_url).name
     if not src.exists():
         raise HTTPException(status_code=404, detail="源图不存在")
 
-    out = []
-    for meta in items_in:
-        try:
-            seg = extract_item(str(src), meta)
-        except Exception as e:
-            logger.exception("分割失败：%s", e)
-            continue
-        out.append(
-            {
-                **meta,
-                "id": _new_id("it"),
-                "imageUrl": seg["imageUrl"],      # Qwen OSS 临时地址，供前端预览
-                "imagePath": "",                   # 入库下载后再填充本地路径
-                "transparent": seg["transparent"],
-                "segmentMethod": seg["segmentMethod"],
-                "sourcePhoto": photo_url,
-            }
-        )
-    return {"items": out}
+    try:
+        seg = extract_item(str(src), meta)
+    except Exception as e:
+        logger.exception("分割失败：%s", e)
+        raise HTTPException(status_code=500, detail=f"单品分割失败：{e}")
+
+    return {
+        **meta,
+        "id": _new_id("it"),
+        "imageUrl": seg["imageUrl"],      # Qwen OSS 临时地址，供前端预览
+        "imagePath": "",                   # 入库下载后再填充本地路径
+        "transparent": seg["transparent"],
+        "segmentMethod": seg["segmentMethod"],
+        "sourcePhoto": photo_url,
+    }
 
 
 @app.post("/api/commit")
@@ -364,6 +363,17 @@ def api_tryon(payload: dict = Body(...)):
         logger.exception("虚拟试穿失败")
         raise HTTPException(status_code=500, detail=str(e))
 
+    # 下载 OSS 临时结果图到本地，返回后端本地路径供小程序加载
+    if result_url.startswith("http://") or result_url.startswith("https://"):
+        try:
+            img_name = _new_id("tr") + ".png"
+            img_path = Path(config.PATHS["TRYON_RESULTS"]) / img_name
+            download_to_local(result_url, str(img_path))
+            result_url = f"/tryon_results/{img_name}"
+        except Exception as e:
+            logger.exception("试穿结果图落地失败：%s", e)
+            raise HTTPException(status_code=500, detail=f"试穿结果图保存失败：{e}")
+
     return {"ok": True, "resultUrl": result_url}
 
 
@@ -403,17 +413,23 @@ def api_save_tryon(payload: dict = Body(...)):
     # 下载结果图到本地
     img_name = _new_id("tr") + ".png"
     img_path = Path(config.PATHS["TRYON_RESULTS"]) / img_name
-    logger.info("开始下载试穿结果图: %s", result_url[:120])
-    try:
-        if result_url.startswith("http://") or result_url.startswith("https://"):
+    if result_url.startswith("http://") or result_url.startswith("https://"):
+        logger.info("开始下载试穿结果图: %s", result_url[:120])
+        try:
             download_to_local(result_url, str(img_path))
+        except Exception as e:
+            logger.exception("试穿结果图下载失败: url=%s error=%s", result_url[:200], e)
+            raise HTTPException(status_code=500, detail=f"保存结果图失败: {e}")
+    elif result_url.startswith("/tryon_results/"):
+        # 已是本地文件，直接复制（无需重新下载）
+        src = Path(config.PATHS["ROOT"]) / result_url.lstrip("/")
+        if src.exists():
+            import shutil
+            shutil.copy2(str(src), str(img_path))
         else:
-            raise HTTPException(status_code=400, detail="结果图 URL 无效，请联系开发者")
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.exception("试穿结果图下载失败: url=%s error=%s", result_url[:200], e)
-        raise HTTPException(status_code=500, detail=f"保存结果图失败: {e}")
+            raise HTTPException(status_code=400, detail="结果图文件不存在")
+    else:
+        raise HTTPException(status_code=400, detail="结果图 URL 无效，请联系开发者")
 
     record = {
         "id": _new_id("tr"),

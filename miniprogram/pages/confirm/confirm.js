@@ -86,28 +86,34 @@ Page({
     this.setData({ candidates })
 
     try {
-      const result = await api.segmentItems(this.data.rawPhotoUrl, chosen)
-      const results = result.items || []
-
-      // 逐件推进进度，每个单品在右侧显示处理完成
+      const processed = []
       for (let i = 0; i < chosen.length; i++) {
-        await delay(280)
-        const idx = chosen[i]._idx
+        const item = chosen[i]
+        const idx = item._idx
+        this.setData({
+          [`candidates[${idx}]._status`]: 'pending',
+          overall: Math.round((i / chosen.length) * 100)
+        })
+        // 每次仅上传一件单品进行分割
+        const seg = await api.segmentOne(this.data.rawPhotoUrl, item)
+        // 保留前端展示字段，合并后端返回的分割结果
+        const merged = {
+          ...item,
+          ...seg,
+          previewUrl: fixImage(seg.imageUrl || seg.image || ''),
+          category: seg.category || item.category || '上装',
+          color: seg.color || item.color || '',
+          style: seg.style || item.style || '',
+          season: seg.season || item.season || '',
+          name: seg.name || item.name || ''
+        }
+        processed.push(merged)
         this.setData({
           [`candidates[${idx}]._status`]: 'done',
           overall: Math.round(((i + 1) / chosen.length) * 100)
         })
       }
 
-      const processed = results.map((it) => ({
-        ...it,
-        previewUrl: fixImage(it.imageUrl || it.image || ''),
-        category: it.category || '上装',
-        color: it.color || '',
-        style: it.style || '',
-        season: it.season || '',
-        name: it.name || ''
-      }))
       storage.set('pendingProcessed', {
         photoUrl: this.data.rawPhotoUrl,
         items: processed

@@ -69,8 +69,8 @@ module.exports = {
 
   // 三步式入库
   analyzePhoto: (filePath) => upload({ path: '/api/analyze', filePath }),
-  segmentItems: (photoUrl, items) => request({
-    method: 'POST', path: '/api/segment', data: { photoUrl, items }
+  segmentOne: (photoUrl, item) => request({
+    method: 'POST', path: '/api/segment', data: { photoUrl, item }
   }),
   commitItems: (items) => request({
     method: 'POST', path: '/api/commit', data: { items }
