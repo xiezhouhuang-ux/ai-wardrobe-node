@@ -222,6 +222,8 @@ def api_commit(payload: dict = Body(...)):
 
     now = int(time.time() * 1000)
     for it in items:
+        if not it.get("id"):
+            it["id"] = _new_id("it")
         it["createdAt"] = now
         # 若 imageUrl 为远程 OSS 地址且尚未落地，则下载到本地 items/
         url = it.get("imageUrl", "")

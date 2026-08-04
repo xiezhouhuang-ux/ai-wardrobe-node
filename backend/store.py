@@ -31,6 +31,10 @@ def normalize_item_for_api(item: dict) -> dict:
     # 暴露稳定的字符串 id 给前端（详情页跳转依赖 item.id）
     if "_id" in it:
         it["id"] = str(it["_id"])
+    # 兜底：历史数据可能既无 _id 也无 id，读取时务必保证有 id
+    if not it.get("id"):
+        import time as _t
+        it["id"] = f"it_{int(_t.time() * 1000)}"
     cat = it.get("category")
     if cat in _CATEGORY_TO_ZH:
         it["category"] = _CATEGORY_TO_ZH[cat]

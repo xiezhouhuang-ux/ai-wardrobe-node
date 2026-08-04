@@ -81,14 +81,25 @@ Page({
     }
     this.setData({ saving: true })
     try {
-      const items = checked.map(it => ({
-        category: this.data.categories[it.catIdx],
-        color: this.data.colors[it.colorIdx] || '',
-        style: this.data.styles[it.styleIdx] || '',
-        season: (it.seasons || []).join('、'),
-        imageUrl: it.imageUrl || it.previewUrl,
-        name: it.name || ''
-      }))
+      const items = checked.map(it => {
+        // 保留分割阶段返回的全部原始字段（material/fit/pattern/brand/hasLogo/
+        // sourcePhoto/transparent/segmentMethod/imagePath/id 等），
+        // 仅覆盖用户在 UI 上可编辑的字段，并剔除前端专用索引字段
+        const out = { ...it }
+        out.category = this.data.categories[it.catIdx]
+        out.color = this.data.colors[it.colorIdx] || ''
+        out.style = this.data.styles[it.styleIdx] || ''
+        out.season = (it.seasons || []).join('、')
+        out.name = it.name || ''
+        out.imageUrl = it.imageUrl || it.previewUrl
+        delete out._on
+        delete out.catIdx
+        delete out.colorIdx
+        delete out.styleIdx
+        delete out.seasons
+        delete out.previewUrl
+        return out
+      })
       await api.commitItems(items)
       storage.remove('pendingAnalysis')
       storage.remove('pendingProcessed')
