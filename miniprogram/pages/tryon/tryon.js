@@ -22,6 +22,9 @@ Page({
   },
 
   onShow() {
+    // 每次展示时刷新数据
+    this.loadUserPhoto()
+    this.loadWardrobe()
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 2 })
     }
