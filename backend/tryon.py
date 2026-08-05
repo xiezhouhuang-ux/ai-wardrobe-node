@@ -172,17 +172,19 @@ def virtual_tryon(
         "Content-Type": "application/json",
     }
 
+    logger.info("试穿请求: %d 件单品, 拼图尺寸 %dx%d", len(valid_items), grid_w, grid_h)
     t0 = time.time()
     resp = requests.post(IMAGE_ENDPOINT, headers=headers, json=payload, timeout=timeout)
     elapsed = time.time() - t0
-    logger.info("试穿 API 请求耗时 %.1f 秒, status=%s", elapsed, resp.status_code)
+    logger.info("试穿 API 返回 status=%s, 耗时 %.1f 秒", resp.status_code, elapsed)
 
     if resp.status_code != 200:
-        err = resp.text[:500] if resp.text else "未知错误"
+        err = resp.text[:2000] if resp.text else "未知错误"
+        logger.error("试穿 API 请求失败 (status=%s), body=%s", resp.status_code, err)
         raise RuntimeError(f"试穿 API 返回 {resp.status_code}: {err}")
 
     data = resp.json()
-    logger.info("试穿 API 原始响应: %s", str(data)[:500])
+    logger.info("试穿 API 原始响应 (截断): %s", str(data)[:2000])
 
     url = _extract_result_url(data)
     if not url:

@@ -7,6 +7,7 @@
 import base64
 import io
 import logging
+import time as _time
 from pathlib import Path
 
 import requests
@@ -52,7 +53,9 @@ def segment_with_qwen_image(image_bytes: bytes, meta: dict) -> str:
         raise RuntimeError("缺少 QWEN_API_KEY，无法调用 DashScope 多模态接口")
 
     prompt = build_segment_prompt(meta)
-    logger.info("DashScope 分割提示词：%s", prompt)
+    img_size = len(image_bytes)
+    logger.info("DashScope 分割请求: 图片 %.1f KB, 单品=%s/%s, 提示词=%s",
+                img_size / 1024, meta.get("category"), meta.get("color"), prompt)
 
     # qwen-image-edit-plus 的正确调用格式：
     # input.messages[].content = [{image: base64}, {text: 指令}]，无 base_image/function 字段
@@ -78,9 +81,19 @@ def segment_with_qwen_image(image_bytes: bytes, meta: dict) -> str:
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json",
     }
+
+    t0 = _time.time()
     resp = requests.post(IMAGE_ENDPOINT, headers=headers, json=payload, timeout=180)
-    resp.raise_for_status()
+    elapsed = _time.time() - t0
+    logger.info("DashScope 分割 API 返回 status=%s, 耗时 %.1f 秒", resp.status_code, elapsed)
+
+    if resp.status_code != 200:
+        err_body = resp.text[:1000] if resp.text else "空响应"
+        logger.error("DashScope 分割请求失败 (status=%s), body=%s", resp.status_code, err_body)
+        resp.raise_for_status()
+
     data = resp.json()
+    logger.info("DashScope 分割原始响应 (截断): %s", str(data)[:2000])
 
     output = data.get("output") or {}
     choices = output.get("choices") or []

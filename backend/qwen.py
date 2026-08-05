@@ -3,14 +3,18 @@ Qwen VL 服装识别模块。复刻原 lib/qwen.js 的 detectClothing + extractJ
 """
 import base64
 import json
+import logging
 import os
 import re
+import time
 from pathlib import Path
 
 import requests
 
 from config import API_KEY, DEMO_MODE, QWEN_MODEL, VISION_BASE_URL
 from prompt import SYSTEM_PROMPT, build_user_message
+
+logger = logging.getLogger("qwen")
 
 # 受控英文词表（用于校正模型输出）
 CATEGORY_VOCAB = {"Top", "Bottom", "Shoes", "Bag"}
@@ -167,7 +171,11 @@ def detect_clothing(image_path: str) -> list:
         return []
 
     with open(image_path, "rb") as f:
-        b64 = base64.b64encode(f.read()).decode("ascii")
+        raw_data = f.read()
+        b64 = base64.b64encode(raw_data).decode("ascii")
+
+    img_size = len(raw_data)
+    logger.info("开始 VL 分析图片: %s (%.1f KB)", image_path, img_size / 1024)
 
     payload = {
         "model": QWEN_MODEL,
@@ -182,10 +190,23 @@ def detect_clothing(image_path: str) -> list:
         "Content-Type": "application/json",
     }
     url = VISION_BASE_URL.rstrip("/") + "/chat/completions"
+
+    t0 = time.time()
     resp = requests.post(url, headers=headers, json=payload, timeout=120)
-    resp.raise_for_status()
+    elapsed = time.time() - t0
+    logger.info("VL API 返回 status=%s, 耗时 %.1f 秒", resp.status_code, elapsed)
+
+    if resp.status_code != 200:
+        err_body = resp.text[:1000] if resp.text else "空响应"
+        logger.error("VL API 请求失败 (status=%s), body=%s", resp.status_code, err_body)
+        resp.raise_for_status()
+
     data = resp.json()
+    logger.info("VL API 原始响应: %s", str(data)[:2000])
     content = data["choices"][0]["message"]["content"]
+    logger.info("VL 返回内容: %s", content[:1000])
     raw_list = _extract_json(content)
     norm = [normalize(r) for r in raw_list]
-    return dedup(norm)
+    result = dedup(norm)
+    logger.info("VL 识别结果: %d 个单品 (原始 %d 个)", len(result), len(raw_list))
+    return result

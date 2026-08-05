@@ -3,7 +3,7 @@ App({
   globalData: {
     // 后端地址，开发期填你本机局域网 IP + 端口
     // 真机调试时不能填 localhost，必须是本机 IP
-    baseURL: 'http://192.168.2.15:3000',
+    baseURL: 'http://10.1.1.222:3000',
     userInfo: null
   },
 

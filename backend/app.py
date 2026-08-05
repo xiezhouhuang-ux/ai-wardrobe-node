@@ -49,7 +49,20 @@ from store import (
 )
 from tryon import virtual_tryon
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+# ---------- 日志：同时输出到控制台和 backend/logs/app.log ----------
+LOG_DIR = Path(__file__).resolve().parent / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler(str(LOG_DIR / "app.log"), encoding="utf-8"),
+    ],
+)
+# 抑制第三方库的 DEBUG 日志
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("requests").setLevel(logging.WARNING)
 logger = logging.getLogger("app")
 
 config.ensure_dirs()
