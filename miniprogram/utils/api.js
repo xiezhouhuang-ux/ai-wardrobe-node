@@ -60,6 +60,11 @@ module.exports = {
   request,
   upload,
 
+  // 内容安全
+  securityCheck: (text, imageUrls) => request({
+    method: 'POST', path: '/api/security/check', data: { text: text || '', imageUrls: imageUrls || [] }
+  }),
+
   // 单品
   getConfig: () => request({ path: '/api/config' }),
   getItems: () => request({ path: '/api/items' }),

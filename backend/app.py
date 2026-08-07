@@ -22,6 +22,7 @@ from pathlib import Path
 
 from fastapi import Body, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 # 确保无论从哪个工作目录启动都能导入同目录模块
@@ -30,6 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import config
 from qwen import detect_clothing
 from segment import download_to_local, extract_item
+from security import ContentRiskError, check_image, check_text
 from store import (
     add_items,
     add_photo,
@@ -66,8 +68,19 @@ logging.getLogger("requests").setLevel(logging.WARNING)
 logger = logging.getLogger("app")
 
 config.ensure_dirs()
+from store import init_db
+try:
+    init_db()
+except Exception as e:
+    logger.exception("MySQL 数据库初始化失败：%s", e)
 
 app = FastAPI(title="AI 数字衣橱", version="1.0.0")
+
+# 内容安全违规：统一返回 400 + 简洁提示（不暴露具体命中细节）
+@app.exception_handler(ContentRiskError)
+def _content_risk_handler(request, exc: ContentRiskError):
+    logger.warning("内容安全拦截：%s", exc.message)
+    return JSONResponse(status_code=400, content={"detail": exc.message, "risk": True})
 
 # 开发期允许前端 Vite 跨域访问
 app.add_middleware(
@@ -90,7 +103,7 @@ def _save_upload(upload: UploadFile) -> Path:
     if ext not in ALLOWED_EXT:
         ext = ".jpg"
     name = _new_id("u") + ext
-    dest = Path(config.PATHS["UPLOADS"]) / name
+    dest = Path(config.UPLOADS) / name
     data = upload.file.read()
     if not data:
         raise HTTPException(status_code=400, detail="空文件")
@@ -131,7 +144,7 @@ def api_process(photos: list[UploadFile] = File(..., description="照片文件�
         items_for_photo = []
         for meta in detections:
             out_name = _new_id("it") + ".png"
-            out_path = Path(config.PATHS["ITEMS"]) / out_name
+            out_path = Path(config.ITEMS) / out_name
             try:
                 seg = extract_item(str(src), meta)
                 if seg["imageUrl"].startswith(("http://", "https://")):
@@ -204,7 +217,7 @@ def api_segment(payload: dict = Body(...)):
     if not photo_url or not meta:
         raise HTTPException(status_code=400, detail="缺少 photoUrl 或 item")
 
-    src = Path(config.PATHS["UPLOADS"]) / Path(photo_url).name
+    src = Path(config.UPLOADS) / Path(photo_url).name
     if not src.exists():
         raise HTTPException(status_code=404, detail="源图不存在")
 
@@ -237,12 +250,27 @@ def api_commit(payload: dict = Body(...)):
         if not it.get("id"):
             it["id"] = _new_id("it")
         it["createdAt"] = now
+        # 对外发布场景：入库单品的图片须过内容安全
+        img_url = it.get("imageUrl", "")
+        if img_url.startswith("http://") or img_url.startswith("https://"):
+            # 远程图先下载再检测
+            try:
+                out_name = _new_id("it") + ".png"
+                out_path = Path(config.ITEMS) / out_name
+                download_to_local(img_url, str(out_path))
+                it["imageUrl"] = f"/items/{out_name}"
+                it["imagePath"] = str(out_path)
+                check_image(str(out_path))
+            except Exception as e:
+                logger.exception("OSS 图片下载/检测失败：%s", e)
+        elif img_url.startswith("/items/"):
+            check_image(str(Path(config.ROOT) / img_url.lstrip("/")))
         # 若 imageUrl 为远程 OSS 地址且尚未落地，则下载到本地 items/
         url = it.get("imageUrl", "")
         if url.startswith("http://") or url.startswith("https://"):
             try:
                 out_name = _new_id("it") + ".png"
-                out_path = Path(config.PATHS["ITEMS"]) / out_name
+                out_path = Path(config.ITEMS) / out_name
                 download_to_local(url, str(out_path))
                 it["imageUrl"] = f"/items/{out_name}"
                 it["imagePath"] = str(out_path)
@@ -293,6 +321,8 @@ def api_get_user_photo():
 def api_upload_user_photo(photo: UploadFile = File(..., description="全身正面照")):
     """上传/更新用户的全身正面照。"""
     src = _save_upload(photo)
+    # 对外发布场景：上传的全身照须过内容安全
+    check_image(str(src))
     url = f"/uploads/{src.name}"
     info = {
         "url": url,
@@ -332,6 +362,15 @@ def api_tryon(payload: dict = Body(...)):
     if not photo_path or not Path(photo_path).exists():
         raise HTTPException(status_code=404, detail="全身照文件丢失，请重新上传")
 
+    # 对外发布场景：试穿底图（用户照）+ 选中的单品图都需过内容安全
+    check_image(photo_path)
+    for it in selected:
+        img_path = it.get("imagePath") or ""
+        if not img_path and (it.get("imageUrl") or "").startswith("/"):
+            img_path = str(Path(config.ROOT) / it["imageUrl"].lstrip("/"))
+        if img_path:
+            check_image(img_path)
+
     # 按 itemId 取真实单品
     all_items = get_items()
     item_map = {it["id"]: it for it in all_items}
@@ -356,7 +395,7 @@ def api_tryon(payload: dict = Body(...)):
     for it in selected:
         img_path = it.get("imagePath") or ""
         if not img_path and (it.get("imageUrl") or "").startswith("/"):
-            img_path = str(Path(config.PATHS["ROOT"]) / it["imageUrl"].lstrip("/"))
+            img_path = str(Path(config.ROOT) / it["imageUrl"].lstrip("/"))
         if not img_path or not Path(img_path).exists():
             logger.warning("单品 %s 图片缺失，跳过: %s", it["id"], img_path)
             continue
@@ -380,7 +419,7 @@ def api_tryon(payload: dict = Body(...)):
     if result_url.startswith("http://") or result_url.startswith("https://"):
         try:
             img_name = _new_id("tr") + ".png"
-            img_path = Path(config.PATHS["TRYON_RESULTS"]) / img_name
+            img_path = Path(config.TRYON_RESULTS) / img_name
             download_to_local(result_url, str(img_path))
             result_url = f"/tryon_results/{img_name}"
         except Exception as e:
@@ -425,7 +464,7 @@ def api_save_tryon(payload: dict = Body(...)):
 
     # 下载结果图到本地
     img_name = _new_id("tr") + ".png"
-    img_path = Path(config.PATHS["TRYON_RESULTS"]) / img_name
+    img_path = Path(config.TRYON_RESULTS) / img_name
     if result_url.startswith("http://") or result_url.startswith("https://"):
         logger.info("开始下载试穿结果图: %s", result_url[:120])
         try:
@@ -435,7 +474,7 @@ def api_save_tryon(payload: dict = Body(...)):
             raise HTTPException(status_code=500, detail=f"保存结果图失败: {e}")
     elif result_url.startswith("/tryon_results/"):
         # 已是本地文件，直接复制（无需重新下载）
-        src = Path(config.PATHS["ROOT"]) / result_url.lstrip("/")
+        src = Path(config.ROOT) / result_url.lstrip("/")
         if src.exists():
             import shutil
             shutil.copy2(str(src), str(img_path))
@@ -460,6 +499,44 @@ def api_save_tryon(payload: dict = Body(...)):
 def api_tryon_records():
     """获取所有已保存的试穿记录。"""
     return get_tryon_records()
+
+
+# ---------------- 内容安全检测（供小程序发布场景调用） ----------------
+
+@app.post("/api/security/check")
+def api_security_check(payload: dict = Body(...)):
+    """
+    小程序发布前的内容安全预检：
+      - text: 可选，待检测文本（备注等）
+      - imageUrls: 可选，待检测图片的本地路径列表（/uploads/...、/items/...、/tryon_results/...）
+    命中违规统一返回 400 + {"detail": "所发布内容含违规信息", "risk": true}
+    """
+    text = payload.get("text", "") or ""
+    image_urls = payload.get("imageUrls", []) or []
+
+    if text:
+        check_text(text, scene=2)
+
+    checked_any = False
+    for u in image_urls:
+        if not u:
+            continue
+        path = u if (u.startswith("/") is False and not u.startswith("http")) else str(Path(config.ROOT) / u.lstrip("/"))
+        if u.startswith("http://") or u.startswith("https://"):
+            # 远程图：先落地再检测
+            try:
+                name = _new_id("sec") + ".png"
+                p = Path(config.UPLOADS) / name
+                download_to_local(u, str(p))
+                check_image(str(p))
+                checked_any = True
+            except Exception as e:
+                logger.warning("远程图内容安全预检失败，跳过: %s", e)
+            continue
+        check_image(path)
+        checked_any = True
+
+    return {"ok": True, "checked": bool(text) or checked_any}
 
 
 @app.delete("/api/tryon/records/{record_id}")
@@ -494,6 +571,10 @@ def api_save_outfit(payload: dict = Body(...)):
     date = payload.get("date")
     if not date:
         raise HTTPException(status_code=400, detail="缺少 date")
+
+    # 对外发布场景：日历备注属用户公开文本，须过内容安全
+    note = payload.get("note", "") or ""
+    check_text(note, scene=2)
 
     raw_items = payload.get("items", []) or []
     real_items = get_items()  # 真实衣橱单品（已归一化、含本地 imageUrl）
@@ -532,9 +613,9 @@ def api_delete_outfit(date: str):
 
 
 # ---------------- 静态资源 ----------------
-app.mount("/uploads", StaticFiles(directory=config.PATHS["UPLOADS"]), name="uploads")
-app.mount("/items", StaticFiles(directory=config.PATHS["ITEMS"]), name="items")
-app.mount("/tryon_results", StaticFiles(directory=config.PATHS["TRYON_RESULTS"]), name="tryon_results")
+app.mount("/uploads", StaticFiles(directory=config.UPLOADS), name="uploads")
+app.mount("/items", StaticFiles(directory=config.ITEMS), name="items")
+app.mount("/tryon_results", StaticFiles(directory=config.TRYON_RESULTS), name="tryon_results")
 
 # 生产构建后托管前端（存在 frontend/dist 时）
 _dist = config.ROOT.parent / "frontend" / "dist"

@@ -42,6 +42,8 @@ Page({
   async upload(tempPath) {
     this.setData({ uploading: true })
     try {
+      // 发布前内容安全检测（全身照属对外展示图）
+      await api.securityCheck('', [tempPath])
       const r = await api.uploadUserPhoto(tempPath)
       // 后端返回 {ok, photo:{url, path, createdAt}}，取 url
       const photo = r && r.photo ? r.photo : (r && (r.url || r.path) ? r : null)

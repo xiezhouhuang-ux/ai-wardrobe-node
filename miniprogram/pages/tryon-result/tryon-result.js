@@ -48,10 +48,15 @@ Page({
     }
     this.setData({ saving: true })
     try {
+      // 发布前内容安全检测（试穿结果图 + 单品图）
+      const outfitItems = this.data.outfitItems || []
+      const imageUrls = [saveUrl, ...outfitItems.map(it => it.imageUrl || it.imageUrl || '').filter(Boolean)]
+      await api.securityCheck('', imageUrls)
       await api.saveTryOnRecord(ids, saveUrl)
       this.setData({ saved: true })
       wx.showToast({ title: '已保存到试穿记录', icon: 'success' })
     } catch (e) {
+      // 内容违规时后端返回 detail="所发布内容含违规信息"，原文透传；其余错误沿用通用提示
       wx.showToast({ title: e.message || '保存失败', icon: 'none' })
     } finally {
       this.setData({ saving: false })
