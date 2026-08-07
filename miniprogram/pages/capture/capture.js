@@ -12,6 +12,15 @@ Page({
   onPickAlbum() { this.choose('album') },
   onPickCamera() { this.choose('camera') },
 
+  // 点击原图全屏放大查看
+  onPreview() {
+    if (!this.data.tempPath) return
+    wx.previewImage({
+      urls: [this.data.tempPath],
+      current: this.data.tempPath
+    })
+  },
+
   choose(sourceType) {
     if (this.data.analyzing) return
     wx.chooseMedia({

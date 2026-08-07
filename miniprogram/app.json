@@ -10,7 +10,8 @@
     "pages/tryon-result/tryon-result",
     "pages/tryon-records/tryon-records",
     "pages/user-photo/user-photo",
-    "pages/me/me"
+    "pages/me/me",
+    "pages/auth/auth"
   ],
   "window": {
     "navigationStyle": "custom",

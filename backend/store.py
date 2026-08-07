@@ -12,32 +12,26 @@ import json
 import logging
 import os
 import threading
+import time
 from datetime import datetime
 
 import pymysql
 from pymysql.cursors import DictCursor
 
+import config
 from config import MYSQL_CONFIG
 
 logger = logging.getLogger("store")
 
-_pool = None
-_pool_lock = threading.Lock()
+_conn_lock = threading.Lock()
 
 
 def _get_conn():
-    """从连接池获取一个连接（线程安全）。"""
-    global _pool
-    if _pool is None:
-        with _pool_lock:
-            if _pool is None:
-                _pool = pymysql.pooled.ConnectionPool(
-                    maxsize=10,
-                    ping=1,
-                    cursorclass=DictCursor,
-                    **MYSQL_CONFIG,
-                )
-    return _pool.connection()
+    """获取一个数据库连接（线程安全；当前每次新建连接，避免依赖连接池扩展）。"""
+    # 每次新建连接并设 autocommit，简单可靠
+    conn = pymysql.connect(cursorclass=DictCursor, **MYSQL_CONFIG)
+    conn.autocommit_mode = True
+    return conn
 
 
 # 历史数据存在中英混排，读取时统一归一到中文规范（不修改数据库）
@@ -109,29 +103,35 @@ def _row_to_item(row: dict) -> dict:
     return normalize_item_for_api(item)
 
 
-def get_items() -> list:
+def get_items(openid: str = "") -> list:
     with _get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM items ORDER BY created_at DESC")
+            if openid:
+                cur.execute("SELECT * FROM items WHERE openid=%s ORDER BY created_at DESC", (openid,))
+            else:
+                cur.execute("SELECT * FROM items ORDER BY created_at DESC")
             rows = cur.fetchall()
     return [_row_to_item(r) for r in rows]
 
 
-def get_item(item_id: str):
+def get_item(item_id: str, openid: str = ""):
     with _get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM items WHERE id=%s", (item_id,))
+            if openid:
+                cur.execute("SELECT * FROM items WHERE id=%s AND openid=%s", (item_id, openid))
+            else:
+                cur.execute("SELECT * FROM items WHERE id=%s", (item_id,))
             row = cur.fetchone()
     if not row:
         return None
     return _row_to_item(row)
 
 
-def add_items(items: list) -> None:
+def add_items(items: list, openid: str = "") -> None:
     if not items:
         return
     cols = (
-        "id", "category", "color", "season", "material", "style", "fit",
+        "id", "openid", "category", "color", "season", "material", "style", "fit",
         "pattern", "brand", "has_logo", "image_url", "image_path",
         "transparent", "segment_method", "source_photo", "created_at",
     )
@@ -148,6 +148,7 @@ def add_items(items: list) -> None:
             for it in items:
                 cur.execute(sql, (
                     it.get("id"),
+                    openid,
                     it.get("category", ""),
                     it.get("color", ""),
                     it.get("season", "四季"),
@@ -167,9 +168,9 @@ def add_items(items: list) -> None:
         conn.commit()
 
 
-def delete_item(item_id: str) -> bool:
+def delete_item(item_id: str, openid: str = "") -> bool:
     # 删除对应的实体图片文件
-    item = get_item(item_id)
+    item = get_item(item_id, openid)
     img_path = None
     if item:
         img_path = item.get("imagePath") or (
@@ -178,7 +179,10 @@ def delete_item(item_id: str) -> bool:
         )
     with _get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute("DELETE FROM items WHERE id=%s", (item_id,))
+            if openid:
+                cur.execute("DELETE FROM items WHERE id=%s AND openid=%s", (item_id, openid))
+            else:
+                cur.execute("DELETE FROM items WHERE id=%s", (item_id,))
             affected = cur.rowcount
         conn.commit()
     if affected and img_path and os.path.exists(img_path):
@@ -189,11 +193,17 @@ def delete_item(item_id: str) -> bool:
     return bool(affected)
 
 
-def get_stats() -> dict:
+def get_stats(openid: str = "") -> dict:
     cats = {}
     with _get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT category, COUNT(*) AS cnt FROM items GROUP BY category")
+            if openid:
+                cur.execute(
+                    "SELECT category, COUNT(*) AS cnt FROM items WHERE openid=%s GROUP BY category",
+                    (openid,),
+                )
+            else:
+                cur.execute("SELECT category, COUNT(*) AS cnt FROM items GROUP BY category")
             rows = cur.fetchall()
     for r in rows:
         c = r["category"] or "未分类"
@@ -204,21 +214,24 @@ def get_stats() -> dict:
 
 # ---------------- 原始照片（uploads 历史） ----------------
 
-def add_photo(photo: dict) -> None:
+def add_photo(photo: dict, openid: str = "") -> None:
     with _get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO photos (id, url, created_at) VALUES (%s, %s, %s) "
-                "ON DUPLICATE KEY UPDATE url=VALUES(url), created_at=VALUES(created_at)",
-                (photo.get("id"), photo.get("url"), int(photo.get("createdAt", 0) or 0)),
+                "INSERT INTO photos (id, openid, url, created_at) VALUES (%s, %s, %s, %s) "
+                "ON DUPLICATE KEY UPDATE openid=VALUES(openid), url=VALUES(url), created_at=VALUES(created_at)",
+                (photo.get("id"), openid, photo.get("url"), int(photo.get("createdAt", 0) or 0)),
             )
         conn.commit()
 
 
-def get_photos() -> list:
+def get_photos(openid: str = "") -> list:
     with _get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM photos ORDER BY created_at DESC")
+            if openid:
+                cur.execute("SELECT * FROM photos WHERE openid=%s ORDER BY created_at DESC", (openid,))
+            else:
+                cur.execute("SELECT * FROM photos ORDER BY created_at DESC")
             rows = cur.fetchall()
     return [
         {"id": r["id"], "url": r["url"], "createdAt": int(r.get("created_at", 0) or 0)}
@@ -228,18 +241,24 @@ def get_photos() -> list:
 
 # ---------------- 日历穿搭（outfits） ----------------
 
-def get_outfits() -> list:
+def get_outfits(openid: str = "") -> list:
     with _get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM outfits ORDER BY date DESC")
+            if openid:
+                cur.execute("SELECT * FROM outfits WHERE openid=%s ORDER BY date DESC", (openid,))
+            else:
+                cur.execute("SELECT * FROM outfits ORDER BY date DESC")
             rows = cur.fetchall()
     return [_row_to_outfit(r) for r in rows]
 
 
-def get_outfit(date: str):
+def get_outfit(date: str, openid: str = ""):
     with _get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM outfits WHERE date=%s", (date,))
+            if openid:
+                cur.execute("SELECT * FROM outfits WHERE date=%s AND openid=%s", (date, openid))
+            else:
+                cur.execute("SELECT * FROM outfits WHERE date=%s", (date,))
             row = cur.fetchone()
     return _row_to_outfit(row) if row else None
 
@@ -252,6 +271,7 @@ def _row_to_outfit(row: dict) -> dict:
         items = []
     return {
         "date": row["date"],
+        "openid": row.get("openid") or "",
         "items": items,
         "note": row.get("note") or "",
         "updatedAt": int(row.get("updated_at", 0) or 0),
@@ -260,24 +280,29 @@ def _row_to_outfit(row: dict) -> dict:
 
 def save_outfit(outfit: dict) -> dict:
     date = outfit.get("date")
+    openid = outfit.get("openid", "")
     items_json = json.dumps(outfit.get("items", []), ensure_ascii=False)
     note = outfit.get("note", "")
     updated_at = int(outfit.get("updatedAt", 0) or 0)
     with _get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO outfits (date, items_json, note, updated_at) VALUES (%s, %s, %s, %s) "
-                "ON DUPLICATE KEY UPDATE items_json=VALUES(items_json), note=VALUES(note), updated_at=VALUES(updated_at)",
-                (date, items_json, note, updated_at),
+                "INSERT INTO outfits (date, openid, items_json, note, updated_at) VALUES (%s, %s, %s, %s, %s) "
+                "ON DUPLICATE KEY UPDATE openid=VALUES(openid), items_json=VALUES(items_json), "
+                "note=VALUES(note), updated_at=VALUES(updated_at)",
+                (date, openid, items_json, note, updated_at),
             )
         conn.commit()
     return outfit
 
 
-def delete_outfit(date: str) -> bool:
+def delete_outfit(date: str, openid: str = "") -> bool:
     with _get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute("DELETE FROM outfits WHERE date=%s", (date,))
+            if openid:
+                cur.execute("DELETE FROM outfits WHERE date=%s AND openid=%s", (date, openid))
+            else:
+                cur.execute("DELETE FROM outfits WHERE date=%s", (date,))
             affected = cur.rowcount
         conn.commit()
     return bool(affected)
@@ -285,14 +310,18 @@ def delete_outfit(date: str) -> bool:
 
 # ---------------- 用户照片（全身试穿底图） ----------------
 
-def get_user_photo() -> dict | None:
+def get_user_photo(openid: str = "") -> dict | None:
     with _get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM user_photo LIMIT 1")
+            if openid:
+                cur.execute("SELECT * FROM user_photo WHERE openid=%s", (openid,))
+            else:
+                cur.execute("SELECT * FROM user_photo LIMIT 1")
             row = cur.fetchone()
     if not row:
         return None
     return {
+        "openid": row.get("openid") or "",
         "url": row.get("url") or "",
         "path": row.get("path") or "",
         "createdAt": int(row.get("created_at", 0) or 0),
@@ -300,23 +329,27 @@ def get_user_photo() -> dict | None:
 
 
 def save_user_photo(photo: dict) -> None:
+    openid = photo.get("openid", "")
     with _get_conn() as conn:
         with conn.cursor() as cur:
-            # 单行表，始终删除旧记录再插入
-            cur.execute("DELETE FROM user_photo")
+            # 按 openid upsert
             cur.execute(
-                "INSERT INTO user_photo (url, path, created_at) VALUES (%s, %s, %s)",
-                (photo.get("url"), photo.get("path"), int(photo.get("createdAt", 0) or 0)),
+                "INSERT INTO user_photo (openid, url, path, created_at) VALUES (%s, %s, %s, %s) "
+                "ON DUPLICATE KEY UPDATE url=VALUES(url), path=VALUES(path), created_at=VALUES(created_at)",
+                (openid, photo.get("url"), photo.get("path"), int(photo.get("createdAt", 0) or 0)),
             )
         conn.commit()
 
 
 # ---------------- 试穿记录 ----------------
 
-def get_tryon_records() -> list:
+def get_tryon_records(openid: str = "") -> list:
     with _get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM tryon_records ORDER BY created_at DESC")
+            if openid:
+                cur.execute("SELECT * FROM tryon_records WHERE openid=%s ORDER BY created_at DESC", (openid,))
+            else:
+                cur.execute("SELECT * FROM tryon_records ORDER BY created_at DESC")
             rows = cur.fetchall()
     return [_row_to_tryon(r) for r in rows]
 
@@ -329,6 +362,7 @@ def _row_to_tryon(row: dict) -> dict:
         items = []
     return {
         "id": row["id"],
+        "openid": row.get("openid") or "",
         "itemIds": json.loads(row["item_ids_json"]) if row.get("item_ids_json") else [],
         "items": items,
         "resultUrl": row.get("result_url") or "",
@@ -338,15 +372,18 @@ def _row_to_tryon(row: dict) -> dict:
 
 
 def save_tryon_record(record: dict) -> dict:
+    openid = record.get("openid", "")
     with _get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO tryon_records (id, item_ids_json, items_json, result_url, image_path, created_at) "
-                "VALUES (%s, %s, %s, %s, %s, %s) "
-                "ON DUPLICATE KEY UPDATE item_ids_json=VALUES(item_ids_json), items_json=VALUES(items_json), "
-                "result_url=VALUES(result_url), image_path=VALUES(image_path), created_at=VALUES(created_at)",
+                "INSERT INTO tryon_records (id, openid, item_ids_json, items_json, result_url, image_path, created_at) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s) "
+                "ON DUPLICATE KEY UPDATE openid=VALUES(openid), item_ids_json=VALUES(item_ids_json), "
+                "items_json=VALUES(items_json), result_url=VALUES(result_url), "
+                "image_path=VALUES(image_path), created_at=VALUES(created_at)",
                 (
                     record.get("id"),
+                    openid,
                     json.dumps(record.get("itemIds", []), ensure_ascii=False),
                     json.dumps(record.get("items", []), ensure_ascii=False),
                     record.get("resultUrl", ""),
@@ -358,16 +395,22 @@ def save_tryon_record(record: dict) -> dict:
     return record
 
 
-def delete_tryon_record(record_id: str) -> bool:
+def delete_tryon_record(record_id: str, openid: str = "") -> bool:
     # 删除本地结果图
     record = None
     with _get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM tryon_records WHERE id=%s", (record_id,))
+            if openid:
+                cur.execute("SELECT * FROM tryon_records WHERE id=%s AND openid=%s", (record_id, openid))
+            else:
+                cur.execute("SELECT * FROM tryon_records WHERE id=%s", (record_id,))
             row = cur.fetchone()
             if row:
                 record = _row_to_tryon(row)
-            cur.execute("DELETE FROM tryon_records WHERE id=%s", (record_id,))
+            if openid:
+                cur.execute("DELETE FROM tryon_records WHERE id=%s AND openid=%s", (record_id, openid))
+            else:
+                cur.execute("DELETE FROM tryon_records WHERE id=%s", (record_id,))
             affected = cur.rowcount
         conn.commit()
     if affected and record:
@@ -381,6 +424,26 @@ def delete_tryon_record(record_id: str) -> bool:
 
 
 # ---------------- 数据库初始化 ----------------
+
+def _ensure_openid_column(cur, table: str) -> None:
+    """若旧表没有 openid 列则补上（幂等；依赖于 information_schema）。"""
+    try:
+        cur.execute(
+            "SELECT COUNT(*) AS c FROM information_schema.columns "
+            "WHERE table_schema = DATABASE() AND table_name=%s AND column_name='openid'",
+            (table,),
+        )
+        row = cur.fetchone()
+        if not row or (row.get("c") or row.get("COUNT(*)") or 0) == 0:
+            cur.execute(
+                f"ALTER TABLE `{table}` ADD COLUMN openid VARCHAR(64) NOT NULL DEFAULT ''"
+            )
+            cur.execute(
+                f"ALTER TABLE `{table}` ADD INDEX idx_openid (openid)"
+            )
+    except Exception as e:
+        logger.warning("为表 %s 补 openid 列失败（可忽略）: %s", table, e)
+
 
 def init_db() -> None:
     """创建数据库和所有表（如果不存在）。"""
@@ -407,6 +470,7 @@ def init_db() -> None:
                 """
                 CREATE TABLE IF NOT EXISTS items (
                     id VARCHAR(64) PRIMARY KEY,
+                    openid VARCHAR(64) NOT NULL DEFAULT '',
                     category VARCHAR(32) NOT NULL DEFAULT '',
                     color VARCHAR(32) NOT NULL DEFAULT '',
                     season VARCHAR(32) NOT NULL DEFAULT '四季',
@@ -422,6 +486,7 @@ def init_db() -> None:
                     segment_method VARCHAR(64) NOT NULL DEFAULT '',
                     source_photo VARCHAR(512) NOT NULL DEFAULT '',
                     created_at BIGINT NOT NULL DEFAULT 0,
+                    INDEX idx_openid (openid),
                     INDEX idx_created (created_at)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                 """
@@ -430,8 +495,10 @@ def init_db() -> None:
                 """
                 CREATE TABLE IF NOT EXISTS photos (
                     id VARCHAR(64) PRIMARY KEY,
+                    openid VARCHAR(64) NOT NULL DEFAULT '',
                     url VARCHAR(512) NOT NULL DEFAULT '',
                     created_at BIGINT NOT NULL DEFAULT 0,
+                    INDEX idx_openid (openid),
                     INDEX idx_created (created_at)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                 """
@@ -440,6 +507,7 @@ def init_db() -> None:
                 """
                 CREATE TABLE IF NOT EXISTS outfits (
                     date VARCHAR(32) PRIMARY KEY,
+                    openid VARCHAR(64) NOT NULL DEFAULT '',
                     items_json MEDIUMTEXT NOT NULL,
                     note VARCHAR(512) NOT NULL DEFAULT '',
                     updated_at BIGINT NOT NULL DEFAULT 0
@@ -449,7 +517,7 @@ def init_db() -> None:
             cur.execute(
                 """
                 CREATE TABLE IF NOT EXISTS user_photo (
-                    id INT PRIMARY KEY DEFAULT 1,
+                    openid VARCHAR(64) PRIMARY KEY,
                     url VARCHAR(512) NOT NULL DEFAULT '',
                     path VARCHAR(512) NOT NULL DEFAULT '',
                     created_at BIGINT NOT NULL DEFAULT 0
@@ -460,15 +528,34 @@ def init_db() -> None:
                 """
                 CREATE TABLE IF NOT EXISTS tryon_records (
                     id VARCHAR(64) PRIMARY KEY,
+                    openid VARCHAR(64) NOT NULL DEFAULT '',
                     item_ids_json MEDIUMTEXT NOT NULL,
                     items_json MEDIUMTEXT NOT NULL,
                     result_url VARCHAR(512) NOT NULL DEFAULT '',
                     image_path VARCHAR(512) NOT NULL DEFAULT '',
                     created_at BIGINT NOT NULL DEFAULT 0,
+                    INDEX idx_openid (openid),
                     INDEX idx_created (created_at)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                 """
             )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS users (
+                    openid VARCHAR(64) PRIMARY KEY,
+                    nickname VARCHAR(128) NOT NULL DEFAULT '',
+                    avatar VARCHAR(512) NOT NULL DEFAULT '',
+                    created_at BIGINT NOT NULL DEFAULT 0,
+                    updated_at BIGINT NOT NULL DEFAULT 0,
+                    INDEX idx_updated (updated_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                """
+            )
+            # 兼容：为已存在的旧表补齐 openid 列（新部署的库建表时已包含，这里幂等）
+            _ensure_openid_column(cur, "items")
+            _ensure_openid_column(cur, "photos")
+            _ensure_openid_column(cur, "outfits")
+            _ensure_openid_column(cur, "tryon_records")
         c.commit()
     logger.info("MySQL 数据库初始化完成（database=%s）", db_name)
 
@@ -483,3 +570,45 @@ class _Paths:
 
 
 PATHS = _Paths()
+
+
+# ---------------- 用户（微信授权） ----------------
+
+def get_user(openid: str) -> dict | None:
+    with _get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM users WHERE openid=%s", (openid,))
+            row = cur.fetchone()
+    if not row:
+        return None
+    return {
+        "openid": row["openid"],
+        "nickname": row.get("nickname") or "",
+        "avatar": row.get("avatar") or "",
+        "createdAt": int(row.get("created_at", 0) or 0),
+        "updatedAt": int(row.get("updated_at", 0) or 0),
+    }
+
+
+def upsert_user(openid: str, nickname: str = "", avatar: str = "") -> dict:
+    now = int(time.time())
+    existing = get_user(openid)
+    with _get_conn() as conn:
+        with conn.cursor() as cur:
+            if existing:
+                # 仅在传入非空时覆盖昵称/头像，避免清空
+                nick = nickname if nickname else existing["nickname"]
+                av = avatar if avatar else existing["avatar"]
+                cur.execute(
+                    "UPDATE users SET nickname=%s, avatar=%s, updated_at=%s "
+                    "WHERE openid=%s",
+                    (nick, av, now, openid),
+                )
+            else:
+                cur.execute(
+                    "INSERT INTO users (openid, nickname, avatar, created_at, updated_at) "
+                    "VALUES (%s, %s, %s, %s, %s)",
+                    (openid, nickname or "", avatar or "", now, now),
+                )
+        conn.commit()
+    return get_user(openid)

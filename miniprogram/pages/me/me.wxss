@@ -73,6 +73,92 @@
   color: #fffaf3;
   font-weight: 700;
 }
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 999rpx;
+}
+.auth-btn {
+  flex-shrink: 0;
+  margin-left: 16rpx;
+  padding: 12rpx 28rpx;
+  background: var(--color-accent, #c96b4a);
+  color: #fffaf3;
+  font-size: 24rpx;
+  border-radius: 999rpx;
+}
+
+/* 完善资料弹层 */
+.mask {
+  position: fixed;
+  left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(58,42,31,0.45);
+  display: flex;
+  align-items: flex-end;
+  z-index: 100;
+}
+.edit-sheet {
+  width: 100%;
+  background: var(--color-surface, #fffaf3);
+  border-radius: var(--radius-lg, 32rpx) var(--radius-lg, 32rpx) 0 0;
+  padding: 40rpx 40rpx calc(40rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+.edit-title {
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--color-text, #3a2a1f);
+  margin-bottom: 36rpx;
+}
+.avatar-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: transparent;
+  padding: 0;
+  margin: 0 0 32rpx;
+  line-height: normal;
+}
+.avatar-picker::after { border: none; }
+.edit-avatar {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 999rpx;
+  background: #efe5d7;
+}
+.edit-avatar-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-mute, #b9ad9c);
+  font-size: 64rpx;
+}
+.avatar-tip {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: var(--color-text-soft, #8b7a6a);
+}
+.nick-input {
+  width: 100%;
+  height: 88rpx;
+  background: var(--color-pill, #efe5d7);
+  border-radius: var(--radius-sm, 16rpx);
+  padding: 0 24rpx;
+  box-sizing: border-box;
+  font-size: 28rpx;
+  color: var(--color-text, #3a2a1f);
+  margin-bottom: 32rpx;
+}
+.edit-save {
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  background: var(--color-accent, #c96b4a);
+  color: #fffaf3;
+  font-size: 30rpx;
+  border-radius: var(--radius-sm, 16rpx);
+}
 .me-info { flex: 1; }
 .me-name {
   font-size: 36rpx;

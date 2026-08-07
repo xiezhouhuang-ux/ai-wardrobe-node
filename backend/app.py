@@ -20,7 +20,7 @@ import time
 import uuid
 from pathlib import Path
 
-from fastapi import Body, FastAPI, File, HTTPException, UploadFile
+from fastapi import Body, Depends, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -45,6 +45,8 @@ from store import (
     get_stats,
     get_tryon_records,
     get_user_photo,
+    get_user,
+    upsert_user,
     save_outfit,
     save_tryon_record,
     save_user_photo,
@@ -111,6 +113,25 @@ def _save_upload(upload: UploadFile) -> Path:
     return dest
 
 
+def get_openid(request: Request) -> str:
+    """从 Authorization: Bearer <openid> 头提取当前登录用户的 openid（小程序统一携带）。"""
+    auth = request.headers.get("Authorization", "") or ""
+    if auth.startswith("Bearer "):
+        return auth[7:].strip()
+    return ""
+
+
+def require_openid(request: Request) -> str:
+    """必须登录：无 openid 直接 401。"""
+    openid = get_openid(request)
+    if not openid:
+        raise HTTPException(status_code=401, detail="请先登录")
+    return openid
+
+
+# 所有衣橱数据接口都需要登录态，使用 FastAPI dependency 注入 openid
+
+
 @app.get("/api/config")
 def api_config():
     return {
@@ -122,7 +143,10 @@ def api_config():
 
 
 @app.post("/api/process")
-def api_process(photos: list[UploadFile] = File(..., description="照片文件，字段名 photos")):
+def api_process(
+    photos: list[UploadFile] = File(..., description="照片文件，字段名 photos"),
+    openid: str = Depends(require_openid),
+):
     if not photos:
         raise HTTPException(status_code=400, detail="未收到照片")
     photos = photos[:UPLOAD_MAX]
@@ -133,7 +157,7 @@ def api_process(photos: list[UploadFile] = File(..., description="照片文件�
         src = _save_upload(upload)
         photo_url = f"/uploads/{src.name}"
         photo_id = _new_id("p")
-        add_photo({"id": photo_id, "url": photo_url, "createdAt": int(time.time() * 1000)})
+        add_photo({"id": photo_id, "url": photo_url, "createdAt": int(time.time() * 1000)}, openid=openid)
 
         try:
             detections = detect_clothing(str(src))
@@ -181,13 +205,16 @@ def api_process(photos: list[UploadFile] = File(..., description="照片文件�
         result.append({"photoId": photo_id, "photoUrl": photo_url, "items": items_for_photo})
 
     if new_items:
-        add_items(new_items)
+        add_items(new_items, openid=openid)
 
     return {"ok": True, "demoMode": config.DEMO_MODE, "result": result}
 
 
 @app.post("/api/analyze")
-def api_analyze(photos: list[UploadFile] = File(..., description="照片文件，字段名 photos")):
+def api_analyze(
+    photos: list[UploadFile] = File(..., description="照片文件，字段名 photos"),
+    openid: str = Depends(require_openid),
+):
     """第一步：仅用 VL 视觉模型分析出候选单品，不分割、不入库。"""
     if not photos:
         raise HTTPException(status_code=400, detail="未收到照片")
@@ -195,7 +222,7 @@ def api_analyze(photos: list[UploadFile] = File(..., description="照片文件�
     src = _save_upload(upload)
     photo_url = f"/uploads/{src.name}"
     photo_id = _new_id("p")
-    add_photo({"id": photo_id, "url": photo_url, "createdAt": int(time.time() * 1000)})
+    add_photo({"id": photo_id, "url": photo_url, "createdAt": int(time.time() * 1000)}, openid=openid)
 
     try:
         candidates = detect_clothing(str(src))
@@ -239,7 +266,7 @@ def api_segment(payload: dict = Body(...)):
 
 
 @app.post("/api/commit")
-def api_commit(payload: dict = Body(...)):
+def api_commit(payload: dict = Body(...), openid: str = Depends(require_openid)):
     """第三步：将确认的单品正式入库（同时把 OSS 预览图下载保存为本地图片）。"""
     items = payload.get("items") or []
     if not items:
@@ -276,55 +303,59 @@ def api_commit(payload: dict = Body(...)):
                 it["imagePath"] = str(out_path)
             except Exception as e:
                 logger.exception("OSS 图片下载失败：%s", e)
-    add_items(items)
+    add_items(items, openid=openid)
     return {"ok": True, "count": len(items)}
 
 
 @app.get("/api/items")
-def api_items():
-    return get_items()
+def api_items(openid: str = Depends(require_openid)):
+    return get_items(openid)
 
 
 @app.get("/api/items/{item_id}")
-def api_item(item_id: str):
-    item = get_item(item_id)
+def api_item(item_id: str, openid: str = Depends(require_openid)):
+    item = get_item(item_id, openid)
     if not item:
         raise HTTPException(status_code=404, detail="单品不存在")
     return item
 
 
 @app.delete("/api/items/{item_id}")
-def api_delete(item_id: str):
-    ok = delete_item(item_id)
+def api_delete(item_id: str, openid: str = Depends(require_openid)):
+    ok = delete_item(item_id, openid)
     if not ok:
         raise HTTPException(status_code=404, detail="单品不存在")
     return {"ok": True}
 
 
 @app.get("/api/stats")
-def api_stats():
-    return get_stats()
+def api_stats(openid: str = Depends(require_openid)):
+    return get_stats(openid)
 
 
 # ---------------- 用户照片（AI 试穿底图） ----------------
 
 @app.get("/api/user/photo")
-def api_get_user_photo():
+def api_get_user_photo(openid: str = Depends(require_openid)):
     """获取当前用户的全身照信息。"""
-    p = get_user_photo()
+    p = get_user_photo(openid)
     if not p:
         raise HTTPException(status_code=404, detail="尚未上传全身照")
     return p
 
 
 @app.post("/api/user/photo")
-def api_upload_user_photo(photo: UploadFile = File(..., description="全身正面照")):
+def api_upload_user_photo(
+    photo: UploadFile = File(..., description="全身正面照"),
+    openid: str = Depends(require_openid),
+):
     """上传/更新用户的全身正面照。"""
     src = _save_upload(photo)
     # 对外发布场景：上传的全身照须过内容安全
     check_image(str(src))
     url = f"/uploads/{src.name}"
     info = {
+        "openid": openid,
         "url": url,
         "path": str(src),
         "createdAt": int(time.time() * 1000),
@@ -333,10 +364,22 @@ def api_upload_user_photo(photo: UploadFile = File(..., description="全身正�
     return {"ok": True, "photo": info}
 
 
+@app.post("/api/user/avatar")
+def api_upload_avatar(
+    avatar: UploadFile = File(..., description="用户头像"),
+    openid: str = Depends(require_openid),
+):
+    """上传用户头像，返回可访问 URL（供小程序 chooseAvatar 结果持久化）。"""
+    src = _save_upload(avatar)
+    check_image(str(src))
+    url = f"/uploads/{src.name}"
+    return {"ok": True, "url": url}
+
+
 # ---------------- AI 试穿 ----------------
 
 @app.post("/api/tryon")
-def api_tryon(payload: dict = Body(...)):
+def api_tryon(payload: dict = Body(...), openid: str = Depends(require_openid)):
     """
     AI 虚拟试穿：将衣橱单品「穿」到用户全身照上。
 
@@ -353,8 +396,8 @@ def api_tryon(payload: dict = Body(...)):
     if not item_ids:
         raise HTTPException(status_code=400, detail="至少选择一件单品")
 
-    # 取用户全身照
-    user_photo = get_user_photo()
+    # 取用户全身照（按当前用户隔离）
+    user_photo = get_user_photo(openid)
     if not user_photo:
         raise HTTPException(status_code=400, detail="请先在「我的」页面上传您的全身正面照")
 
@@ -371,8 +414,8 @@ def api_tryon(payload: dict = Body(...)):
         if img_path:
             check_image(img_path)
 
-    # 按 itemId 取真实单品
-    all_items = get_items()
+    # 按 itemId 取真实单品（仅当前用户）
+    all_items = get_items(openid)
     item_map = {it["id"]: it for it in all_items}
     selected = []
     missing = []
@@ -432,7 +475,7 @@ def api_tryon(payload: dict = Body(...)):
 # ---------------- 试穿记录（保存/查询/删除） ----------------
 
 @app.post("/api/tryon/save")
-def api_save_tryon(payload: dict = Body(...)):
+def api_save_tryon(payload: dict = Body(...), openid: str = Depends(require_openid)):
     """
     保存当前试穿搭配记录：
       - 将试穿结果图从 OSS 下载到本地 tryon_results/
@@ -446,8 +489,8 @@ def api_save_tryon(payload: dict = Body(...)):
     if not result_url:
         raise HTTPException(status_code=400, detail="缺少试穿结果图")
 
-    # 从衣橱取单品快照
-    all_items = get_items()
+    # 从衣橱取单品快照（仅当前用户）
+    all_items = get_items(openid)
     item_map = {it["id"]: it for it in all_items}
     item_snapshots = []
     for iid in item_ids:
@@ -485,6 +528,7 @@ def api_save_tryon(payload: dict = Body(...)):
 
     record = {
         "id": _new_id("tr"),
+        "openid": openid,
         "itemIds": item_ids,
         "items": item_snapshots,
         "resultUrl": f"/tryon_results/{img_name}",
@@ -496,9 +540,9 @@ def api_save_tryon(payload: dict = Body(...)):
 
 
 @app.get("/api/tryon/records")
-def api_tryon_records():
-    """获取所有已保存的试穿记录。"""
-    return get_tryon_records()
+def api_tryon_records(openid: str = Depends(require_openid)):
+    """获取当前用户已保存的试穿记录。"""
+    return get_tryon_records(openid)
 
 
 # ---------------- 内容安全检测（供小程序发布场景调用） ----------------
@@ -540,9 +584,9 @@ def api_security_check(payload: dict = Body(...)):
 
 
 @app.delete("/api/tryon/records/{record_id}")
-def api_delete_tryon(record_id: str):
+def api_delete_tryon(record_id: str, openid: str = Depends(require_openid)):
     """删除指定的试穿记录。"""
-    ok = delete_tryon_record(record_id)
+    ok = delete_tryon_record(record_id, openid)
     if not ok:
         raise HTTPException(status_code=404, detail="记录不存在")
     return {"ok": True}
@@ -551,18 +595,18 @@ def api_delete_tryon(record_id: str):
 # ---------------- 日历穿搭（outfits） ----------------
 
 @app.get("/api/outfits")
-def api_outfits(date: str = None):
-    """获取日历穿搭：传 date 取某天，否则返回全部。"""
+def api_outfits(openid: str = Depends(require_openid), date: str = None):
+    """获取日历穿搭：传 date 取某天，否则返回全部（仅当前用户）。"""
     if date:
-        o = get_outfit(date)
+        o = get_outfit(date, openid)
         if not o:
             raise HTTPException(status_code=404, detail="当天没有穿搭记录")
         return o
-    return get_outfits()
+    return get_outfits(openid)
 
 
 @app.post("/api/outfits")
-def api_save_outfit(payload: dict = Body(...)):
+def api_save_outfit(payload: dict = Body(...), openid: str = Depends(require_openid)):
     """新增或更新某天的穿搭（按 date upsert）。
 
     前端只传 {category, itemId, imageUrl?, name?}，后端根据 itemId 从真实衣橱
@@ -577,7 +621,7 @@ def api_save_outfit(payload: dict = Body(...)):
     check_text(note, scene=2)
 
     raw_items = payload.get("items", []) or []
-    real_items = get_items()  # 真实衣橱单品（已归一化、含本地 imageUrl）
+    real_items = get_items(openid)  # 真实衣橱单品（仅当前用户、已归一化、含本地 imageUrl）
     real_by_id = {it["id"]: it for it in real_items}
 
     clean_items = []
@@ -596,6 +640,7 @@ def api_save_outfit(payload: dict = Body(...)):
 
     outfit = {
         "date": date,
+        "openid": openid,
         "items": clean_items,
         "note": payload.get("note", ""),
         "updatedAt": int(time.time() * 1000),
@@ -605,11 +650,77 @@ def api_save_outfit(payload: dict = Body(...)):
 
 
 @app.delete("/api/outfits/{date}")
-def api_delete_outfit(date: str):
-    ok = delete_outfit(date)
+def api_delete_outfit(date: str, openid: str = Depends(require_openid)):
+    ok = delete_outfit(date, openid)
     if not ok:
         raise HTTPException(status_code=404, detail="当天没有穿搭记录")
     return {"ok": True}
+
+
+# ---------------- 微信授权登录 ----------------
+
+def _wx_code2session(code: str) -> dict:
+    """调用微信 auth.code2Session 换取 openid / session_key。"""
+    if not (config.WX_APPID and config.WX_SECRET):
+        raise HTTPException(status_code=500, detail="服务端未配置微信 AppID/Secret")
+    import requests
+
+    url = "https://api.weixin.qq.com/sns/jscode2session"
+    params = {
+        "appid": config.WX_APPID,
+        "secret": config.WX_SECRET,
+        "js_code": code,
+        "grant_type": "authorization_code",
+    }
+    try:
+        resp = requests.get(url, params=params, timeout=10)
+        data = resp.json()
+    except Exception as e:
+        logger.exception("微信 code2Session 请求失败：%s", e)
+        raise HTTPException(status_code=502, detail="微信登录服务异常")
+    if "openid" not in data:
+        errcode = data.get("errcode")
+        errmsg = data.get("errmsg", "未知错误")
+        logger.warning("微信 code2Session 返回错误：%s %s", errcode, errmsg)
+        raise HTTPException(status_code=401, detail=f"微信登录失败({errcode})")
+    return data
+
+
+@app.post("/api/auth/login")
+def api_auth_login(body: dict = Body(default={})):
+    """小程序 wx.login 拿到的 code 换取 openid，并把用户写入库。"""
+    code = body.get("code") or ""
+    if not code:
+        raise HTTPException(status_code=400, detail="缺少 code")
+    wx_data = _wx_code2session(code)
+    openid = wx_data["openid"]
+    user = upsert_user(openid)  # 首次登录仅建记录
+    return {
+        "ok": True,
+        "openid": openid,
+        "user": user,
+    }
+
+
+@app.post("/api/user/profile")
+def api_update_profile(body: dict = Body(default={})):
+    """更新昵称 / 头像（小程序 button open-type=getuserinfo 或自定义输入）。"""
+    openid = body.get("openid") or ""
+    if not openid:
+        raise HTTPException(status_code=400, detail="缺少 openid")
+    nickname = (body.get("nickname") or "").strip()
+    avatar = (body.get("avatar") or "").strip()
+    user = upsert_user(openid, nickname=nickname, avatar=avatar)
+    return {"ok": True, "user": user}
+
+
+@app.get("/api/user/profile")
+def api_get_profile(openid: str = Depends(require_openid)):
+    """获取用户信息（根据登录态返回 created_at 等）。"""
+    user = get_user(openid)
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    return {"ok": True, "user": user}
 
 
 # ---------------- 静态资源 ----------------

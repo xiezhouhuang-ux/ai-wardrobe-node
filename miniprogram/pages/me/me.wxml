@@ -2,13 +2,29 @@
 <view class="me-page page-with-nav">
   <nav-bar title="我的"></nav-bar>
 
-  <view class="me-hero">
+  <view class="me-hero" bindtap="onTapProfile">
     <view class="avatar">
-      <view class="avatar-text">{{initial}}</view>
+      <image wx:if="{{avatarUrl}}" class="avatar-img" src="{{avatarUrl}}" mode="aspectFill"></image>
+      <view wx:else class="avatar-text">{{initial}}</view>
     </view>
     <view class="me-info">
-      <view class="me-name">AI 衣橱用户</view>
-      <view class="me-sub">已陪伴你 {{days}} 天</view>
+      <view class="me-name">{{nickname || 'AI 衣橱用户'}}</view>
+      <view class="me-sub">{{isLogin ? '已陪伴你 ' + days + ' 天' : '点击登录后体验完整功能'}}</view>
+    </view>
+    <view wx:if="{{showAuth}}" class="auth-btn">点击补充资料</view>
+  </view>
+
+  <!-- 完善资料弹层（头像 + 昵称，符合微信最新授权规范） -->
+  <view wx:if="{{showProfileEdit}}" class="mask" bindtap="onCloseEdit">
+    <view class="edit-sheet" catchtap="noop">
+      <view class="edit-title">完善你的资料</view>
+      <button class="avatar-picker" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
+        <image wx:if="{{avatarUrl}}" class="edit-avatar" src="{{avatarUrl}}" mode="aspectFill"></image>
+        <view wx:else class="edit-avatar edit-avatar-empty">＋</view>
+        <text class="avatar-tip">选择头像</text>
+      </button>
+      <input class="nick-input" type="nickname" placeholder="请输入昵称" value="{{draftNickname}}" bindinput="onNicknameInput" bindblur="onNicknameInput" />
+      <button class="edit-save" bindtap="onSaveFromSheet">保存</button>
     </view>
   </view>
 

@@ -1,23 +1,60 @@
 // utils/api.js —— 与后端的 REST 封装
-const app = getApp()
 
+// 注意：不能在模块顶层调用 getApp()，此时 App() 可能尚未注册完成，
+// 会返回 undefined 导致全局崩溃。改为在每次请求时动态获取。
 function url(path) {
-  return app.globalData.baseURL + path
+  const app = getApp() || {}
+  const base = (app.globalData && app.globalData.baseURL) || ''
+  return base + path
+}
+
+// 构造带登录态的请求头：Authorization: Bearer <openid>
+function authHeader() {
+  const app = getApp() || {}
+  const openid = (app.globalData && app.globalData.openid) || ''
+  if (openid) {
+    return { Authorization: 'Bearer ' + openid }
+  }
+  return {}
 }
 
 /**
  * 通用 wx.request Promise 化
  */
-function request({ method = 'GET', path, data = {}, header = {} }) {
+function request({ method = 'GET', path, data = {}, header = {}, authRequired = true }) {
+  // 需要登录的接口：未登录（无 openid）时直接走未登录处理，避免无效请求。
+  // 注意：登录/授权接口本身不能加此守卫，否则永远无法登录（死循环）。
+  if (authRequired) {
+    const app = getApp() || {}
+    const openid = (app.globalData && app.globalData.openid) || ''
+    if (!openid) {
+      return new Promise((resolve, reject) => {
+        const pages = getCurrentPages()
+        const cur = pages.length ? pages[pages.length - 1].route : ''
+        if (cur !== 'pages/auth/auth') {
+          wx.navigateTo({ url: '/pages/auth/auth' })
+        }
+        reject(new Error('请先登录'))
+      })
+    }
+  }
   return new Promise((resolve, reject) => {
     wx.request({
       url: url(path),
       method,
       data,
-      header: Object.assign({ 'Content-Type': 'application/json' }, header),
+      header: Object.assign({ 'Content-Type': 'application/json' }, authHeader(), header),
       success: (res) => {
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(res.data)
+        } else if (res.statusCode === 401) {
+          // 未登录：跳到授权页（避免对自身页面重复跳转）
+          const pages = getCurrentPages()
+          const cur = pages.length ? pages[pages.length - 1].route : ''
+          if (cur !== 'pages/auth/auth') {
+            wx.navigateTo({ url: '/pages/auth/auth' })
+          }
+          reject(new Error((res.data && res.data.detail) || '请先登录'))
         } else {
           const detail = (res.data && res.data.detail) || `请求失败 (${res.statusCode})`
           reject(new Error(detail))
@@ -38,6 +75,7 @@ function upload({ path, filePath, name = 'photos', formData = {} }) {
       filePath,
       name,
       formData,
+      header: authHeader(),
       success: (res) => {
         try {
           const data = JSON.parse(res.data)
@@ -64,6 +102,13 @@ module.exports = {
   securityCheck: (text, imageUrls) => request({
     method: 'POST', path: '/api/security/check', data: { text: text || '', imageUrls: imageUrls || [] }
   }),
+
+  // 微信授权登录 / 用户资料
+  login: (code) => request({ method: 'POST', path: '/api/auth/login', data: { code }, authRequired: false }),
+  updateProfile: (openid, nickname, avatar) => request({
+    method: 'POST', path: '/api/user/profile', data: { openid, nickname: nickname || '', avatar: avatar || '' }
+  }),
+  uploadAvatar: (filePath) => upload({ path: '/api/user/avatar', filePath, name: 'avatar' }),
 
   // 单品
   getConfig: () => request({ path: '/api/config' }),
