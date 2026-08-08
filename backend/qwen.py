@@ -87,14 +87,14 @@ def _norm_category(cat: str) -> str:
     for v in CATEGORY_VOCAB:
         if v.lower() == c:
             return v
-    # 关键词兜底
-    if any(k in c for k in ("top", "shirt", "tee", "上衣", "外套", "卫衣", "t恤", "衫")):
+    # 关键词兜底（覆盖模型可能输出的各种中文/英文表述）
+    if any(k in c for k in ("dress", "连衣裙", "连身裙"," top", "shirt", "tee", "上衣", "外套", "卫衣", "t恤", "衫", "毛衣", "大衣", "西装", "夹克", "coat", "jacket", "sweater", "hoodie")):
         return "Top"
-    if any(k in c for k in ("bottom", "pant", "trouser", "skirt", "下装", "裤", "裙")):
+    if any(k in c for k in ("bottom", "pant", "trouser", "skirt", "下装", "裤子", "裤", "裙", "半裙" ,"裙装")):
         return "Bottom"
-    if any(k in c for k in ("shoe", "sneaker", "boot", "鞋")):
+    if any(k in c for k in ("shoe", "sneaker", "boot", "鞋", "靴")):
         return "Shoes"
-    if any(k in c for k in ("bag", "backpack", "包", "背包")):
+    if any(k in c for k in ("bag", "backpack", "包", "背包", "手提包", "挎包")):
         return "Bag"
     return "Top"
 

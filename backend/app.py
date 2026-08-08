@@ -29,6 +29,7 @@ from fastapi.staticfiles import StaticFiles
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import config
+import jwt_token
 from qwen import detect_clothing
 from segment import download_to_local, extract_item
 from security import ContentRiskError, check_image, check_text
@@ -114,15 +115,15 @@ def _save_upload(upload: UploadFile) -> Path:
 
 
 def get_openid(request: Request) -> str:
-    """从 Authorization: Bearer <openid> 头提取当前登录用户的 openid（小程序统一携带）。"""
+    """从 Authorization: Bearer <jwt> 头解析 openid（校验签名与有效期）。"""
     auth = request.headers.get("Authorization", "") or ""
     if auth.startswith("Bearer "):
-        return auth[7:].strip()
+        return jwt_token.decode_token(auth[7:].strip())
     return ""
 
 
 def require_openid(request: Request) -> str:
-    """必须登录：无 openid 直接 401。"""
+    """必须登录：无有效令牌（JWT 校验失败/过期）直接 401。"""
     openid = get_openid(request)
     if not openid:
         raise HTTPException(status_code=401, detail="请先登录")
@@ -695,19 +696,18 @@ def api_auth_login(body: dict = Body(default={})):
     wx_data = _wx_code2session(code)
     openid = wx_data["openid"]
     user = upsert_user(openid)  # 首次登录仅建记录
+    token = jwt_token.create_token(openid)
     return {
         "ok": True,
         "openid": openid,
+        "token": token,
         "user": user,
     }
 
 
 @app.post("/api/user/profile")
-def api_update_profile(body: dict = Body(default={})):
-    """更新昵称 / 头像（小程序 button open-type=getuserinfo 或自定义输入）。"""
-    openid = body.get("openid") or ""
-    if not openid:
-        raise HTTPException(status_code=400, detail="缺少 openid")
+def api_update_profile(body: dict = Body(default={}), openid: str = Depends(require_openid)):
+    """更新昵称 / 头像（openid 从 JWT 登录态解析，不再由前端明文传入）。"""
     nickname = (body.get("nickname") or "").strip()
     avatar = (body.get("avatar") or "").strip()
     user = upsert_user(openid, nickname=nickname, avatar=avatar)

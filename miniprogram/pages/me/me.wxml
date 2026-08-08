@@ -58,16 +58,6 @@
   </view>
 
   <view class="menu-card">
-    <view class="menu-row" bindtap="onGo" data-url="/pages/calendar/calendar">
-      <view class="menu-ico">📅</view>
-      <view class="menu-text">日历穿搭</view>
-      <view class="menu-arrow">›</view>
-    </view>
-    <view class="menu-row" bindtap="onGo" data-url="/pages/tryon/tryon">
-      <view class="menu-ico">🪄</view>
-      <view class="menu-text">AI 试穿</view>
-      <view class="menu-arrow">›</view>
-    </view>
     <view class="menu-row" bindtap="onTapTryonHistory">
       <view class="menu-ico">🖼</view>
       <view class="menu-text">试穿记录</view>
@@ -79,6 +69,8 @@
       <view class="menu-arrow">›</view>
     </view>
   </view>
+
+  <view wx:if="{{isLogin}}" class="logout-btn" bindtap="onLogout">退出登录</view>
 
   <view class="version">v 1.0.0 · Made with ♥</view>
 

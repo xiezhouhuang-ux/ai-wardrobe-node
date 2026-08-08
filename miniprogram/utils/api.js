@@ -8,32 +8,46 @@ function url(path) {
   return base + path
 }
 
-// 构造带登录态的请求头：Authorization: Bearer <openid>
-function authHeader() {
+// 获取登录令牌（JWT）：优先取全局，回退本地存储（适配全局尚未初始化的场景）
+function getToken() {
   const app = getApp() || {}
-  const openid = (app.globalData && app.globalData.openid) || ''
-  if (openid) {
-    return { Authorization: 'Bearer ' + openid }
+  const fromGlobal = app.globalData && app.globalData.token
+  if (fromGlobal) return fromGlobal
+  try {
+    const local = wx.getStorageSync('login_token')
+    if (local) return local
+  } catch (e) { /* ignore */ }
+  return ''
+}
+
+function authHeader() {
+  const token = getToken()
+  if (token) {
+    return { Authorization: 'Bearer ' + token }
   }
   return {}
+}
+
+// 跳转到授权页：避免重复堆叠 auth 页面导致「登录后还停在 auth」。
+// 若当前已在 auth 则不重复打开；否则用 navigateTo（保留来源页，授权后可返回）。
+function gotoAuth() {
+  const pages = getCurrentPages() || []
+  const cur = pages.length ? pages[pages.length - 1].route : ''
+  if (cur === 'pages/auth/auth') return
+  wx.navigateTo({ url: '/pages/auth/auth' })
 }
 
 /**
  * 通用 wx.request Promise 化
  */
 function request({ method = 'GET', path, data = {}, header = {}, authRequired = true }) {
-  // 需要登录的接口：未登录（无 openid）时直接走未登录处理，避免无效请求。
+  // 需要登录的接口：未登录（无 token）时直接走未登录处理，避免无效请求。
   // 注意：登录/授权接口本身不能加此守卫，否则永远无法登录（死循环）。
   if (authRequired) {
-    const app = getApp() || {}
-    const openid = (app.globalData && app.globalData.openid) || ''
-    if (!openid) {
+    const token = getToken()
+    if (!token) {
       return new Promise((resolve, reject) => {
-        const pages = getCurrentPages()
-        const cur = pages.length ? pages[pages.length - 1].route : ''
-        if (cur !== 'pages/auth/auth') {
-          wx.navigateTo({ url: '/pages/auth/auth' })
-        }
+        gotoAuth()
         reject(new Error('请先登录'))
       })
     }
@@ -48,12 +62,8 @@ function request({ method = 'GET', path, data = {}, header = {}, authRequired = 
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(res.data)
         } else if (res.statusCode === 401) {
-          // 未登录：跳到授权页（避免对自身页面重复跳转）
-          const pages = getCurrentPages()
-          const cur = pages.length ? pages[pages.length - 1].route : ''
-          if (cur !== 'pages/auth/auth') {
-            wx.navigateTo({ url: '/pages/auth/auth' })
-          }
+          // 未登录：跳到授权页（避免重复堆叠 auth 页）
+          gotoAuth()
           reject(new Error((res.data && res.data.detail) || '请先登录'))
         } else {
           const detail = (res.data && res.data.detail) || `请求失败 (${res.statusCode})`
@@ -68,7 +78,12 @@ function request({ method = 'GET', path, data = {}, header = {}, authRequired = 
 /**
  * wx.uploadFile Promise 化
  */
-function upload({ path, filePath, name = 'photos', formData = {} }) {
+function upload({ path, filePath, name = 'photos', formData = {}, authRequired = false }) {
+  // 需要登录态时校验：缺少 token 视为未登录（login 接口本身 authRequired:false）
+  if (authRequired && !getToken()) {
+    gotoAuth()
+    return Promise.reject(new Error('请先登录'))
+  }
   return new Promise((resolve, reject) => {
     wx.uploadFile({
       url: url(path),
@@ -81,6 +96,9 @@ function upload({ path, filePath, name = 'photos', formData = {} }) {
           const data = JSON.parse(res.data)
           if (res.statusCode >= 200 && res.statusCode < 300) {
             resolve(data)
+          } else if (res.statusCode === 401) {
+            gotoAuth()
+            reject(new Error(data.detail || '请先登录'))
           } else {
             reject(new Error(data.detail || `上传失败 (${res.statusCode})`))
           }
@@ -105,8 +123,8 @@ module.exports = {
 
   // 微信授权登录 / 用户资料
   login: (code) => request({ method: 'POST', path: '/api/auth/login', data: { code }, authRequired: false }),
-  updateProfile: (openid, nickname, avatar) => request({
-    method: 'POST', path: '/api/user/profile', data: { openid, nickname: nickname || '', avatar: avatar || '' }
+  updateProfile: (nickname, avatar) => request({
+    method: 'POST', path: '/api/user/profile', data: { nickname: nickname || '', avatar: avatar || '' }
   }),
   uploadAvatar: (filePath) => upload({ path: '/api/user/avatar', filePath, name: 'avatar' }),
 
@@ -136,8 +154,8 @@ module.exports = {
   }),
 
   // AI 试穿
-  getUserPhoto: () => request({ path: '/api/user/photo' }),
-  uploadUserPhoto: (filePath) => upload({ path: '/api/user/photo', filePath, name: 'photo' }),
+  getUserPhoto: () => request({ path: '/api/user/photo', authRequired: true }),
+  uploadUserPhoto: (filePath) => upload({ path: '/api/user/photo', filePath, name: 'photo', authRequired: true }),
   tryOn: (itemIds) => request({ method: 'POST', path: '/api/tryon', data: { itemIds } }),
   saveTryOnRecord: (itemIds, resultUrl) => request({
     method: 'POST', path: '/api/tryon/save', data: { itemIds, resultUrl }

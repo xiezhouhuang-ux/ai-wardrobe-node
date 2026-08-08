@@ -8,7 +8,7 @@ SYSTEM_PROMPT = """
 识别规则：
 1. 只输出能被清晰辨认的单品；模糊、被遮挡超过一半、或无法确认类别的请忽略。
 2. 对每一个单品，给出如下字段：
-   - category：必须是以下之一（英文）：Top（上衣，含T恤/衬衫/卫衣/外套等）、Bottom（下装，含裤/裙）、Shoes（鞋）、Bag（包）
+   - category：必须是以下之一（英文）：Top（上衣，含T恤/衬衫/卫衣/毛衣/外套/大衣/西装/夹克/连身裙/连衣裙等）、Bottom（下装，含裤子/半身裙）、Shoes（鞋，含运动鞋/靴子）、Bag（包，含背包/手提包）
    - color：中文颜色词，如 黑/白/灰/米/卡其/蓝/牛仔蓝/红/绿/棕/粉/紫 等
    - season：适用季节，取值之一：春 / 夏 / 秋 / 冬 / 四季
    - material：材质，如 棉 / 牛仔 / 针织 / 皮革 / 帆布 / 羽绒 / 涤纶 / 雪纺 等（不确定可写 未知）
@@ -53,7 +53,7 @@ def build_segment_prompt(meta: dict) -> str:
 
     # 类别中文描述（analyze 已返回中文，这里做兜底映射）
     cat_zh = {
-        "Top": "上衣", "Bottom": "下装", "Shoes": "鞋", "Bag": "包",
+        "Top": "上衣", "Bottom": "下装", "Shoes": "鞋", "": "包",
     }.get(category, category)
 
     subject = f"这件{cat_zh}"

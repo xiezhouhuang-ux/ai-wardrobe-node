@@ -11,7 +11,7 @@ Page({
     userPhoto: '',
     // 登录态
     isLogin: false,
-    openid: '',
+    token: '',  // 登录令牌（JWT），仅用于判断是否已登录
     nickname: '',
     avatarUrl: '',
     showAuth: false,   // 是否展示「点击授权」按钮
@@ -37,22 +37,22 @@ Page({
   // 从全局拉取登录信息（静默登录可能在 onShow 之前完成，也可能之后）
   syncLoginFromGlobal() {
     const app = getApp() || {}
-    const { openid, userInfo } = app.globalData || {}
-    if (openid) {
+    const { token, userInfo } = app.globalData || {}
+    if (token) {
       const nickname = (userInfo && userInfo.nickname) || ''
       const avatarUrl = (userInfo && userInfo.avatar) || ''
       const createdAt = (userInfo && userInfo.createdAt) || 0
       const initial = nickname ? nickname.charAt(0).toUpperCase() : 'A'
       this.setData({
-        isLogin: true, openid, nickname, avatarUrl, initial,
+        isLogin: true, token, nickname, avatarUrl, initial,
         createdAt: createdAt,
         days: this.calcDays(createdAt),
         showAuth: !nickname && !avatarUrl  // 已登录但没资料 -> 提示补充
       })
     } else {
+      // 未登录：仅更新状态，不主动跳转授权页。
+      // 跳转由用户点击「微信授权」按钮触发，避免静默登录异步未完成时反复弹 auth。
       this.setData({ isLogin: false, showAuth: false })
-      // 未登录：跳转授权页，由用户主动点击「微信授权」
-      wx.navigateTo({ url: '/pages/auth/auth' })
     }
   },
 
@@ -87,15 +87,13 @@ Page({
     } catch (e) { /* 未上传 */ }
   },
 
-  // 点击头像区域：未登录 -> 去授权页；已登录但无资料 -> 打开资料编辑
+  // 点击头像区域：未登录 -> 去授权页；已登录 -> 打开资料编辑
   onTapProfile() {
     if (!this.data.isLogin) {
       wx.navigateTo({ url: '/pages/auth/auth' })
       return
     }
-    if (!this.data.nickname && !this.data.avatarUrl) {
-      this.openProfileEdit()
-    }
+    this.openProfileEdit()
   },
 
   // 打开「完善资料」弹层（新版微信通过 chooseAvatar + nickname input 合规获取）
@@ -118,7 +116,7 @@ Page({
   },
 
   async uploadAvatarOnly(avatarUrl) {
-    if (!this.data.openid || !avatarUrl) return
+    if (!this.data.token || !avatarUrl) return
     let finalAvatar = avatarUrl
     if (!finalAvatar.startsWith('http')) {
       try {
@@ -143,7 +141,7 @@ Page({
   noop() {},
 
   async saveProfile(avatarUrl, nickname) {
-    if (!this.data.openid) return
+    if (!this.data.token) return
     let finalAvatar = avatarUrl || ''
     // 本地临时文件（wxfile:// 或 http://tmp）需先上传后端换取可访问 URL
     if (finalAvatar && !finalAvatar.startsWith('http')) {
@@ -160,20 +158,21 @@ Page({
 
   // closeSheet: 保存后是否关闭资料弹层
   async persistProfile(finalAvatar, nickname, closeSheet) {
-    if (!this.data.openid) return
+    if (!this.data.token) return
     const app = getApp() || {}
     try {
-      const r = await api.updateProfile(this.data.openid, nickname || '', finalAvatar || '')
+      const r = await api.updateProfile(nickname || '', finalAvatar || '')
       const user = r.user || {}
       if (app.globalData) {
-        app.globalData.userInfo = {
+        app.saveLogin(this.data.token, {
           nickname: user.nickname || '',
-          avatar: user.avatar || ''
-        }
+          avatar: fixImage(user.avatar || ''),
+          createdAt: user.createdAt || this.data.createdAt
+        })
       }
       this.setData({
         nickname: user.nickname || '',
-        avatarUrl: user.avatar || '',
+        avatarUrl: fixImage(user.avatar || ''),
         initial: (user.nickname || 'A').charAt(0).toUpperCase(),
         createdAt: user.createdAt || this.data.createdAt,
         days: this.calcDays(user.createdAt || this.data.createdAt),
@@ -202,6 +201,27 @@ Page({
       showCancel: false,
       confirmText: '知道了',
       confirmColor: '#c96b4a'
+    })
+  },
+
+  // 退出登录：清除本地与全局登录态，回到授权页
+  onLogout() {
+    wx.showModal({
+      title: '退出登录',
+      content: '确定要退出登录吗？',
+      confirmText: '退出',
+      confirmColor: '#c96b4a',
+      success: (res) => {
+        if (!res.confirm) return
+        const app = getApp() || {}
+        if (app.clearLogin) app.clearLogin()
+        this.setData({
+          isLogin: false, token: '', nickname: '', avatarUrl: '',
+          initial: 'A', days: 0, createdAt: 0,
+          showAuth: false, showProfileEdit: false
+        })
+        wx.navigateTo({ url: '/pages/auth/auth' })
+      }
     })
   }
 })

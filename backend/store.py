@@ -425,8 +425,12 @@ def delete_tryon_record(record_id: str, openid: str = "") -> bool:
 
 # ---------------- 数据库初始化 ----------------
 
-def _ensure_openid_column(cur, table: str) -> None:
-    """若旧表没有 openid 列则补上（幂等；依赖于 information_schema）。"""
+def _ensure_openid_column(cur, table: str, not_null: bool = True) -> None:
+    """若旧表没有 openid 列则补上（幂等；依赖于 information_schema）。
+
+    :param not_null: user_photo 表的 openid 是主键，但若是旧表补列时可能已有
+                     数据行，此时用可空列避免 ALTER 失败；其它表用 NOT NULL DEFAULT ''。
+    """
     try:
         cur.execute(
             "SELECT COUNT(*) AS c FROM information_schema.columns "
@@ -435,9 +439,14 @@ def _ensure_openid_column(cur, table: str) -> None:
         )
         row = cur.fetchone()
         if not row or (row.get("c") or row.get("COUNT(*)") or 0) == 0:
-            cur.execute(
-                f"ALTER TABLE `{table}` ADD COLUMN openid VARCHAR(64) NOT NULL DEFAULT ''"
-            )
+            if not_null:
+                cur.execute(
+                    f"ALTER TABLE `{table}` ADD COLUMN openid VARCHAR(64) NOT NULL DEFAULT ''"
+                )
+            else:
+                cur.execute(
+                    f"ALTER TABLE `{table}` ADD COLUMN openid VARCHAR(64) NULL"
+                )
             cur.execute(
                 f"ALTER TABLE `{table}` ADD INDEX idx_openid (openid)"
             )
@@ -556,6 +565,8 @@ def init_db() -> None:
             _ensure_openid_column(cur, "photos")
             _ensure_openid_column(cur, "outfits")
             _ensure_openid_column(cur, "tryon_records")
+            # user_photo 是单行用户表：若是旧库建表时可能尚未带 openid 列，补列（允许 NULL 避免旧数据冲突）
+            _ensure_openid_column(cur, "user_photo", not_null=False)
         c.commit()
     logger.info("MySQL 数据库初始化完成（database=%s）", db_name)
 

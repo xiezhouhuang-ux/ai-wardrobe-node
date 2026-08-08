@@ -43,6 +43,11 @@ CONTENT_SECURITY_ENABLED = os.getenv("CONTENT_SECURITY_ENABLED", "1") != "0"
 
 PORT = int(os.getenv("PORT", "8000"))
 
+# ---------------- JWT 登录态密钥 ----------------
+# 用于签发/校验登录令牌（Authorization: Bearer <jwt>）。
+# 生产环境务必设置强随机密钥（如 openssl rand -hex 32）。
+JWT_SECRET = os.getenv("JWT_SECRET", "")
+
 # ---------------- MySQL 配置 ----------------
 MYSQL_HOST = os.getenv("MYSQL_HOST", "127.0.0.1")
 MYSQL_PORT = int(os.getenv("MYSQL_PORT", "3306"))

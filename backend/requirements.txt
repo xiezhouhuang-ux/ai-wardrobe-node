@@ -5,5 +5,6 @@ requests>=2.31
 pillow>=10.0
 python-dotenv>=1.0
 pymysql>=1.1
+PyJWT>=2.8
 # 可选：离线抠图（不安装时自动回退为原图）
 # rembg>=2.0

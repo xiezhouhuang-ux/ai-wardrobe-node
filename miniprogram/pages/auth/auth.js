@@ -1,5 +1,7 @@
 // pages/auth/auth.js
 const api = require('../../utils/api.js')
+const fixImage = require('../../utils/image.js')
+const app = getApp()
 
 Page({
   data: {
@@ -19,15 +21,13 @@ Page({
         }
         api.login(res.code)
           .then((r) => {
-            const app = getApp() || {}
-            if (app.globalData) {
-              app.globalData.openid = r.openid || ''
-              app.globalData.userInfo = {
-                nickname: (r.user && r.user.nickname) || '',
-                avatar: (r.user && r.user.avatar) || '',
-                createdAt: (r.user && r.user.createdAt) || 0
-              }
+            const token = r.token || ''  // 后端签发的 JWT
+            const userInfo = {
+              nickname: (r.user && r.user.nickname) || '',
+              avatar: fixImage((r.user && r.user.avatar) || ''),
+              createdAt: (r.user && r.user.createdAt) || 0
             }
+            app.saveLogin(token, userInfo)
             wx.showToast({ title: '授权成功', icon: 'success' })
             setTimeout(() => {
               // 回到上一页（通常是「我的」）

@@ -236,3 +236,18 @@
   font-size: 22rpx;
   color: var(--color-text-mute, #b9ad9c);
 }
+
+.logout-btn {
+  margin: 24rpx 32rpx 0;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface, #fffaf3);
+  border-radius: var(--radius-md, 24rpx);
+  color: #c0392b;
+  font-size: 30rpx;
+  font-weight: 500;
+  box-shadow: var(--shadow-card, 0 8rpx 24rpx rgba(58,42,31,0.06));
+}
+.logout-btn:active { opacity: 0.7; }
