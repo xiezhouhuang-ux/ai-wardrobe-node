@@ -1,6 +1,6 @@
 // utils/nav.js —— 自定义导航栏（状态栏 + 胶囊高度适配）
 function getStatusBarHeight() {
-  try { return wx.getSystemInfoSync().statusBarHeight || 20 } catch (e) { return 20 }
+  try { return wx.getWindowInfo().statusBarHeight || 20 } catch (e) { return 20 }
 }
 
 // 右上角胶囊信息：top / height，开发者工具 2.27+ 支持

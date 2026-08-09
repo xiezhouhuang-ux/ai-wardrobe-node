@@ -20,11 +20,11 @@ App({
   onLaunch() {
     // 系统信息：状态栏高度、屏幕宽度等
     try {
-      const sys = wx.getSystemInfoSync()
-      this.globalData.statusBarHeight = sys.statusBarHeight
-      this.globalData.windowWidth = sys.windowWidth
+      const win = wx.getWindowInfo()
+      this.globalData.statusBarHeight = win.statusBarHeight
+      this.globalData.windowWidth = win.windowWidth
     } catch (e) {
-      console.warn('getSystemInfo failed', e)
+      console.warn('getWindowInfo failed', e)
     }
     // 先尝试从本地恢复登录态（重启小程序后无需重新授权即可登录）
     this.restoreLogin()

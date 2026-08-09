@@ -62,8 +62,10 @@ function request({ method = 'GET', path, data = {}, header = {}, authRequired = 
           resolve(res.data)
         } else if (res.statusCode === 401) {
           // 登录态失效：仅拒绝，由调用方决定是否引导登录（不再自动跳 auth 页）
-          gotoAuth()
-          reject(new Error((res.data && res.data.detail) || '请先登录'))
+          if(authRequired ){
+            gotoAuth()
+          }
+           reject(new Error((res.data && res.data.detail) || '请先登录'))
         } else {
           const detail = (res.data && res.data.detail) || `请求失败 (${res.statusCode})`
           reject(new Error(detail))
@@ -77,9 +79,10 @@ function request({ method = 'GET', path, data = {}, header = {}, authRequired = 
 /**
  * wx.uploadFile Promise 化
  */
-function upload({ path, filePath, name = 'photos', formData = {}, authRequired = false }) {
+function upload({ path, filePath, name = 'photos', formData = {}, authRequired = true }) {
   // 需要登录态时校验：缺少 token 视为未登录（login 接口本身 authRequired:false）
   if (authRequired && !getToken()) {
+    gotoAuth();
     return Promise.reject(new Error('请先登录'))
   }
   return new Promise((resolve, reject) => {
@@ -97,6 +100,7 @@ function upload({ path, filePath, name = 'photos', formData = {}, authRequired =
             resolve(data)
           } else if (res.statusCode === 401) {
             // 登录态失效：仅拒绝，由调用方引导登录（不再自动跳 auth 页）
+            gotoAuth();
             reject(new Error(data.detail || '请先登录'))
           } else {
             reject(new Error(data.detail || `上传失败 (${res.statusCode})`))
@@ -129,10 +133,10 @@ module.exports = {
 
   // 单品
   getConfig: () => request({ path: '/api/config' }),
-  getItems: () => request({ path: '/api/items' }),
+  getItems: () => request({ path: '/api/items' , authRequired: false }),
   getItem: (id) => request({ path: `/api/items/${id}` }),
   deleteItem: (id) => request({ method: 'DELETE', path: `/api/items/${id}` }),
-  getStats: () => request({ path: '/api/stats' }),
+  getStats: () => request({ path: '/api/stats' , authRequired: false }),
 
   // 三步式入库
   analyzePhoto: (filePath) => upload({ path: '/api/analyze', filePath }),
@@ -144,7 +148,7 @@ module.exports = {
   }),
 
   // 日历穿搭
-  getOutfits: (date) => request({ path: date ? `/api/outfits?date=${date}` : '/api/outfits' }),
+  getOutfits: (date) => request({ path: date ? `/api/outfits?date=${date}` : '/api/outfits' , authRequired: false }),
   saveOutfit: (date, items, note) => request({
     method: 'POST', path: '/api/outfits', data: { date, items, note: note || '' }
   }),
@@ -153,13 +157,13 @@ module.exports = {
   }),
 
   // AI 试穿
-  getUserPhoto: () => request({ path: '/api/user/photo', authRequired: true }),
+  getUserPhoto: () => request({ path: '/api/user/photo', authRequired: false }),
   uploadUserPhoto: (filePath) => upload({ path: '/api/user/photo', filePath, name: 'photo', authRequired: true }),
   tryOn: (itemIds) => request({ method: 'POST', path: '/api/tryon', data: { itemIds } }),
   saveTryOnRecord: (itemIds, resultUrl) => request({
     method: 'POST', path: '/api/tryon/save', data: { itemIds, resultUrl }
   }),
-  getTryOnRecords: () => request({ path: '/api/tryon/records' }),
+  getTryOnRecords: () => request({ path: '/api/tryon/records' , authRequired: false}),
   deleteTryOnRecord: (recordId) => request({
     method: 'DELETE', path: `/api/tryon/records/${encodeURIComponent(recordId)}`
   })

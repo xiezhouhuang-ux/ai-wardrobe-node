@@ -72,7 +72,7 @@
 
   <view wx:if="{{isLogin}}" class="logout-btn" bindtap="onLogout">退出登录</view>
 
-  <view class="version">v 1.0.0 · Made with ♥</view>
+  <view class="version">v 1.0.0 · Made with 荷兰豆♥</view>
 
   <view class="safe-bottom"></view>
 </view>

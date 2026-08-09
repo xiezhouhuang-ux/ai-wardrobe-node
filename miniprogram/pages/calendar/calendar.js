@@ -298,7 +298,7 @@ Page({
     try {
       // 发布前内容安全检测（备注文本 + 单品图）
       const imageUrls = editingItems.map(v => v.imageUrl).filter(Boolean)
-      await api.securityCheck(this.data.note, imageUrls)
+      // await api.securityCheck(this.data.note, imageUrls)
       await api.saveOutfit(this.data.selectedDate, editingItems, this.data.note)
       wx.showToast({ title: '已保存', icon: 'success' })
       this.setData({ selectedDay: 0, pickerCat: '' })

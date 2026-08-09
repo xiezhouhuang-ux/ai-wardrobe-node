@@ -56,7 +56,7 @@
       </view>
     </view>
 
-    <textarea class="note" value="{{note}}" bindinput="onNote" placeholder="备注（可选）" maxlength="200"></textarea>
+    <!-- <textarea class="note" value="{{note}}" bindinput="onNote" placeholder="备注（可选）" maxlength="200"></textarea> -->
 
     <view class="panel-footer">
       <button class="btn btn-ghost footer-btn" bindtap="onDeleteOutfit" wx:if="{{hasDayOutfit}}">删除</button>
