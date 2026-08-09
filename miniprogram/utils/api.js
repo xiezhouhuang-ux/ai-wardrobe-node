@@ -46,6 +46,7 @@ function request({ method = 'GET', path, data = {}, header = {}, authRequired = 
   if (authRequired) {
     const token = getToken()
     if (!token) {
+      gotoAuth()
       return Promise.reject(new Error('请先登录'))
     }
   }
@@ -61,6 +62,7 @@ function request({ method = 'GET', path, data = {}, header = {}, authRequired = 
           resolve(res.data)
         } else if (res.statusCode === 401) {
           // 登录态失效：仅拒绝，由调用方决定是否引导登录（不再自动跳 auth 页）
+          gotoAuth()
           reject(new Error((res.data && res.data.detail) || '请先登录'))
         } else {
           const detail = (res.data && res.data.detail) || `请求失败 (${res.statusCode})`

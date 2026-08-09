@@ -6,10 +6,10 @@ App({
   globalData: {
     // 后端地址，开发期填你本机局域网 IP + 端口
     // 真机调试时不能填 localhost，必须是本机 IP
-    // baseURL: 'https://wardrobe.maidane.com',
+    baseURL: 'https://wardrobe.maidane.com',
     // 注意：小程序运行在微信客户端，localhost 指向手机自身而非后端电脑，
     // 必须填后端电脑的局域网 IP（开发者工具/真机调试需勾选“不校验合法域名”）。
-    baseURL: 'http://localhost:3000',
+    // baseURL: 'http://localhost:3000',
     userInfo: { nickname: '', avatar: '', createdAt: 0 },
     token: '', // 登录令牌（JWT），请求时放在 Authorization 头
     pendingTryonItemId: '', // 从详情页跳 AI 搭配时，待自动选中的单品 id
