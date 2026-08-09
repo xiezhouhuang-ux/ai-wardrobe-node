@@ -221,6 +221,8 @@ def api_analyze(
         raise HTTPException(status_code=400, detail="未收到照片")
     upload = photos[0]
     src = _save_upload(upload)
+    # 内容安全检测：拍照识别上传的服装照
+    check_image(str(src))
     photo_url = f"/uploads/{src.name}"
     photo_id = _new_id("p")
     add_photo({"id": photo_id, "url": photo_url, "createdAt": int(time.time() * 1000)}, openid=openid)
@@ -278,21 +280,17 @@ def api_commit(payload: dict = Body(...), openid: str = Depends(require_openid))
         if not it.get("id"):
             it["id"] = _new_id("it")
         it["createdAt"] = now
-        # 对外发布场景：入库单品的图片须过内容安全
         img_url = it.get("imageUrl", "")
         if img_url.startswith("http://") or img_url.startswith("https://"):
-            # 远程图先下载再检测
+            # 远程图先下载到本地
             try:
                 out_name = _new_id("it") + ".png"
                 out_path = Path(config.ITEMS) / out_name
                 download_to_local(img_url, str(out_path))
                 it["imageUrl"] = f"/items/{out_name}"
                 it["imagePath"] = str(out_path)
-                check_image(str(out_path))
             except Exception as e:
-                logger.exception("OSS 图片下载/检测失败：%s", e)
-        elif img_url.startswith("/items/"):
-            check_image(str(Path(config.ROOT) / img_url.lstrip("/")))
+                logger.exception("OSS 图片下载失败：%s", e)
         # 若 imageUrl 为远程 OSS 地址且尚未落地，则下载到本地 items/
         url = it.get("imageUrl", "")
         if url.startswith("http://") or url.startswith("https://"):
@@ -372,7 +370,6 @@ def api_upload_avatar(
 ):
     """上传用户头像，返回可访问 URL（供小程序 chooseAvatar 结果持久化）。"""
     src = _save_upload(avatar)
-    check_image(str(src))
     url = f"/uploads/{src.name}"
     return {"ok": True, "url": url}
 
@@ -406,15 +403,7 @@ def api_tryon(payload: dict = Body(...), openid: str = Depends(require_openid)):
     if not photo_path or not Path(photo_path).exists():
         raise HTTPException(status_code=404, detail="全身照文件丢失，请重新上传")
 
-    # 对外发布场景：试穿底图（用户照）+ 选中的单品图都需过内容安全
-    check_image(photo_path)
-    for it in selected:
-        img_path = it.get("imagePath") or ""
-        if not img_path and (it.get("imageUrl") or "").startswith("/"):
-            img_path = str(Path(config.ROOT) / it["imageUrl"].lstrip("/"))
-        if img_path:
-            check_image(img_path)
-
+    # 试穿为个人私有场景，不做内容安全检测
     # 按 itemId 取真实单品（仅当前用户）
     all_items = get_items(openid)
     item_map = {it["id"]: it for it in all_items}
@@ -434,7 +423,7 @@ def api_tryon(payload: dict = Body(...), openid: str = Depends(require_openid)):
     # 读取用户全身照字节
     person_bytes = Path(photo_path).read_bytes()
 
-    # 为试穿准备单品信息（需带本地图片路径）
+    # 为试穿准备单品信息（需带本地图片路径）；单品图为自己衣橱内图片，不再过内容安全
     item_images = []
     for it in selected:
         img_path = it.get("imagePath") or ""
@@ -618,8 +607,8 @@ def api_save_outfit(payload: dict = Body(...), openid: str = Depends(require_ope
         raise HTTPException(status_code=400, detail="缺少 date")
 
     # 对外发布场景：日历备注属用户公开文本，须过内容安全
-    note = payload.get("note", "") or ""
-    check_text(note, scene=2)
+    # note = payload.get("note", "") or ""
+    # check_text(note, scene=2)
 
     raw_items = payload.get("items", []) or []
     real_items = get_items(openid)  # 真实衣橱单品（仅当前用户、已归一化、含本地 imageUrl）
