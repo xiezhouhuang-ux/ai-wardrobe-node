@@ -28,7 +28,7 @@ Page({
     this.loadAll()
   },
 
-  // 静默登录完成后由 app.js 广播：重新同步登录态并刷新数据
+  // 登录态变更后可手动刷新（授权成功后 onShow 会重新同步，此处保留兼容）
   onLoginReady() {
     this.syncLoginFromGlobal()
     this.loadAll()

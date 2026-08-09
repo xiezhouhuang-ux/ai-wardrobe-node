@@ -27,7 +27,9 @@ _token = {"value": None, "expire_at": 0}
 _token_lock = threading.Lock()
 
 # 微信接口地址
-_TOKEN_URL = "https://api.weixin.qq.com/cgi-bin/token"
+# 注：access_token 改用「稳定版接口」stable_token，它与普通 token 接口互斥、
+# 不会互相强制失效，更适合多实例/后台刷新场景（避免 40001 invalid credential）。
+_TOKEN_URL = "https://api.weixin.qq.com/cgi-bin/stable_token"
 _MSG_SEC_CHECK_URL = "https://api.weixin.qq.com/wxa/msg_sec_check"
 _IMG_SEC_CHECK_URL = "https://api.weixin.qq.com/wxa/img_sec_check"
 
@@ -40,34 +42,47 @@ def _is_enabled() -> bool:
     return bool(config.WX_APPID) and bool(config.WX_SECRET)
 
 
-def _get_access_token() -> str:
-    """获取 access_token，带进程内缓存。"""
+# token 相关错误码：需强制刷新 access_token 后重试
+_TOKEN_ERRCODES = {40001, 40014, 41001, 42001}
+
+
+def _fetch_token() -> str:
+    """向微信请求新的 access_token（不带缓存，使用稳定版接口 stable_token）。"""
     now = time.time()
-    if _token["value"] and now < _token["expire_at"]:
+    resp = requests.post(
+        _TOKEN_URL,
+        json={
+            "grant_type": "client_credential",
+            "appid": config.WX_APPID,
+            "secret": config.WX_SECRET,
+            # force_refresh=false 由微信侧协调，多个服务不会互相强制失效 token
+            "force_refresh": False,
+        },
+        headers={"Content-Type": "application/json"},
+        timeout=10,
+    )
+    data = resp.json()
+    if "access_token" not in data:
+        raise RuntimeError(f"获取 access_token 失败: {data}")
+    # 稳定版接口返回 access_token_expire_in（秒级），提前 5 分钟过期
+    expires_in = int(data.get("access_token_expire_in", data.get("expires_in", 7200)))
+    _token["value"] = data["access_token"]
+    _token["expire_at"] = now + max(0, expires_in - 300)
+    logger.info("已获取微信 access_token（stable），有效期 %s 秒", expires_in)
+    return _token["value"]
+
+
+def _get_access_token(force: bool = False) -> str:
+    """获取 access_token，带进程内缓存。force=True 时忽略缓存强制刷新。"""
+    now = time.time()
+    if not force and _token["value"] and now < _token["expire_at"]:
         return _token["value"]
 
     with _token_lock:
-        # 双重检查
-        if _token["value"] and now < _token["expire_at"]:
+        # 双重检查（仅非强制刷新时）
+        if not force and _token["value"] and now < _token["expire_at"]:
             return _token["value"]
-        resp = requests.get(
-            _TOKEN_URL,
-            params={
-                "grant_type": "client_credential",
-                "appid": config.WX_APPID,
-                "secret": config.WX_SECRET,
-            },
-            timeout=10,
-        )
-        data = resp.json()
-        if "access_token" not in data:
-            raise RuntimeError(f"获取 access_token 失败: {data}")
-        # 微信返回的是秒级有效期，提前 5 分钟过期
-        expires_in = int(data.get("expires_in", 7200))
-        _token["value"] = data["access_token"]
-        _token["expire_at"] = now + max(0, expires_in - 300)
-        logger.info("已获取微信 access_token，有效期 %s 秒", expires_in)
-        return _token["value"]
+        return _fetch_token()
 
 
 class ContentRiskError(Exception):
@@ -110,11 +125,24 @@ def check_text(content: str, scene: int = 2, openid: str = "") -> None:
     data = resp.json()
     logger.info("文本检测 status=%s result=%s", resp.status_code, str(data)[:300])
 
+    # access_token 失效类错误：强制刷新 token 后重试一次
+    if data.get("errcode") in _TOKEN_ERRCODES:
+        logger.warning("文本检测 access_token 失效(%s)，刷新后重试", data.get("errcode"))
+        token = _get_access_token(force=True)
+        resp = requests.post(
+            f"{_MSG_SEC_CHECK_URL}?access_token={token}",
+            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            timeout=10,
+        )
+        data = resp.json()
+        logger.info("文本检测(重试) status=%s result=%s", resp.status_code, str(data)[:300])
+
     # errcode=0 通过；87014 内容违规；其他按需处理
     if data.get("errcode") == 87014:
         raise ContentRiskError("所发布内容含违规信息", field="text")
     if data.get("errcode") not in (0,):
-        # 其他错误码（如 token 失效）记录但不阻断正常发布流程
+        # 其他错误码（如 token 仍异常）记录但不阻断正常发布流程
         logger.warning("文本检测返回非预期 errcode=%s", data.get("errcode"))
 
 
@@ -153,6 +181,18 @@ def check_image(image_path: str, openid: str = "") -> None:
     )
     result = resp.json()
     logger.info("图片检测 status=%s result=%s", resp.status_code, str(result)[:300])
+
+    # access_token 失效类错误：强制刷新 token 后重试一次
+    if result.get("errcode") in _TOKEN_ERRCODES:
+        logger.warning("图片检测 access_token 失效(%s)，刷新后重试", result.get("errcode"))
+        token = _get_access_token(force=True)
+        resp = requests.post(
+            f"{_IMG_SEC_CHECK_URL}?access_token={token}",
+            files={"media": (p.name, data, "image/jpeg")},
+            timeout=10,
+        )
+        result = resp.json()
+        logger.info("图片检测(重试) status=%s result=%s", resp.status_code, str(result)[:300])
 
     if result.get("errcode") == 87014:
         raise ContentRiskError("所发布内容含违规信息", field="image")
