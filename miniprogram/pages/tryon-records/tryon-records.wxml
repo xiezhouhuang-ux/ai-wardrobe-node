@@ -11,7 +11,7 @@
   </view>
 
   <view wx:else class="records-list">
-    <view class="record-card" wx:for="{{records}}" wx:key="id" data-id="{{item.id}}" data-url="{{item.resultUrl}}" data-ids="{{item.itemIds}}" bindtap="onViewResult">
+    <view class="record-card" wx:for="{{records}}" wx:key="id" data-url="{{item.resultUrl}}" bindtap="onViewResult">
       <image class="record-img" src="{{item.resultUrl}}" mode="aspectFill"></image>
       <view class="record-body">
         <view class="record-date">{{item.createdAt}}</view>
@@ -23,15 +23,6 @@
       </view>
       <view class="record-del" data-id="{{item.id}}" catchtap="onDelete">×</view>
     </view>
-  </view>
-
-  <!-- 试穿图片预览弹窗 -->
-  <view wx:if="{{previewUrl}}" class="preview-mask" bindtap="onClosePreview">
-    <view class="preview-box" catchtap="onPreviewImage">
-      <image class="preview-img" src="{{previewUrl}}" mode="widthFix"></image>
-      <view class="preview-tip">点击图片可放大查看</view>
-    </view>
-    <view class="preview-close" catchtap="onClosePreview">×</view>
   </view>
 
   <view class="safe-bottom"></view>

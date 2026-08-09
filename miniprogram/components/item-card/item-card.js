@@ -17,7 +17,7 @@ Component({
   },
   methods: {
     onTap() {
-      this.triggerEvent('tap', { item: this.data.item })
+      this.triggerEvent('cardtap', { item: this.data.item }, { bubbles: false, composed: false })
     }
   }
 })

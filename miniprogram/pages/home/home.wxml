@@ -48,7 +48,7 @@
   <!-- 单品瀑布流 -->
   <view class="grid">
     <view class="grid-item" wx:for="{{filtered}}" wx:key="id" wx:for-index="i">
-      <item-card item="{{item}}" bind:tap="onTapItem" data-id="{{item.id}}" data-index="{{i}}"></item-card>
+      <item-card item="{{item}}" bind:cardtap="onTapItem" data-id="{{item.id}}" data-index="{{i}}"></item-card>
     </view>
     <view class="empty" wx:if="{{!loading && filtered.length === 0}}">
       <view class="empty-emoji">🧺</view>

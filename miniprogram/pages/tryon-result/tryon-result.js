@@ -48,10 +48,6 @@ Page({
     }
     this.setData({ saving: true })
     try {
-      // 发布前内容安全检测（试穿结果图 + 单品图）
-      const outfitItems = this.data.outfitItems || []
-      const imageUrls = [saveUrl, ...outfitItems.map(it => it.imageUrl || it.imageUrl || '').filter(Boolean)]
-      await api.securityCheck('', imageUrls)
       await api.saveTryOnRecord(ids, saveUrl)
       this.setData({ saved: true })
       wx.showToast({ title: '已保存到试穿记录', icon: 'success' })
@@ -81,5 +77,10 @@ Page({
     })
   },
 
-  onRetry() { wx.navigateBack() }
+  // 点击结果图直接预览（系统级，可缩放/保存）
+  onPreviewImage() {
+    const url = this.data.resultUrl
+    if (!url) return
+    wx.previewImage({ current: url, urls: [url] })
+  }
 })

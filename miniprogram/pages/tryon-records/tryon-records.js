@@ -6,8 +6,7 @@ Page({
   data: {
     records: [],
     loading: false,
-    empty: false,
-    previewUrl: ''
+    empty: false
   },
 
   onShow() {
@@ -46,21 +45,9 @@ Page({
     }
   },
 
-  // 点击记录：弹出试穿图片预览（不跳转）
+  // 点击记录：直接查看试穿图片（系统级预览，可缩放/保存）
   onViewResult(e) {
     const { url } = e.currentTarget.dataset
-    if (!url) return
-    this.setData({ previewUrl: url })
-  },
-
-  // 关闭预览弹窗
-  onClosePreview() {
-    this.setData({ previewUrl: '' })
-  },
-
-  // 点击预览大图进入系统级查看（可保存/缩放）
-  onPreviewImage() {
-    const url = this.data.previewUrl
     if (!url) return
     wx.previewImage({ current: url, urls: [url] })
   },

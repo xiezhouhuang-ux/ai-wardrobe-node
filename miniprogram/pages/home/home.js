@@ -92,13 +92,16 @@ Page({
   },
 
   onTapItem(e) {
+    if (this._navigating) return
     const src = (e.detail && e.detail.item) ? e.detail.item : (this.data.filtered[e.currentTarget.dataset.index] || {})
     const id = src.id || src._id || e.currentTarget.dataset.id
     if (!id) {
       wx.showToast({ title: '单品数据异常', icon: 'none' })
       return
     }
+    this._navigating = true
     wx.navigateTo({ url: `/pages/detail/detail?id=${id}` })
+    setTimeout(() => { this._navigating = false }, 800)
   },
 
   onTapAdd() { this.onTapFab() },

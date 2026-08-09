@@ -3,7 +3,7 @@
   <nav-bar title="试穿结果" back="{{true}}"></nav-bar>
 
   <view class="result-card">
-    <image class="result-img" src="{{resultUrl}}" mode="aspectFit" show-menu-by-longpress="true"></image>
+    <image class="result-img" src="{{resultUrl}}" mode="aspectFit" show-menu-by-longpress="{{true}}" bindtap="onPreviewImage"></image>
     <view class="result-tag">AI 试穿</view>
   </view>
 
@@ -24,9 +24,6 @@
     <button class="btn btn-primary flex-btn" bindtap="onConfirmSave" disabled="{{saving || saved}}">
       {{saved ? '已保存' : (saving ? '保存中…' : '确认保存')}}
     </button>
-  </view>
-  <view class="action-row" style="margin-top: 16rpx;">
-    <button class="btn btn-ghost flex-btn" bindtap="onRetry">再试一次</button>
   </view>
 
   <view class="safe-bottom"></view>
