@@ -139,6 +139,7 @@
 .thumb:active { opacity: 0.85; }
 
 .meta { flex: 1; }
+.row0 { font-size: 30rpx; font-weight: 700; color: var(--color-text, #3a2a1f); margin-bottom: 6rpx; }
 .row1 { display: flex; align-items: center; gap: 12rpx; }
 .cate { font-size: 28rpx; font-weight: 600; color: var(--color-text, #3a2a1f); }
 .color { font-size: 26rpx; color: var(--color-text-mute, #b9ad9c); }

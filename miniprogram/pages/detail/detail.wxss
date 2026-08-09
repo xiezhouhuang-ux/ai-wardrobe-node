@@ -55,6 +55,14 @@
   color: var(--color-text-soft, #8b7a6a);
 }
 
+.source-thumb {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: var(--radius-sm, 16rpx);
+  background: #fff;
+  flex-shrink: 0;
+}
+
 .meta-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

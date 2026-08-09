@@ -15,9 +15,10 @@ SYSTEM_PROMPT = """
    - style：风格，如 休闲 / 运动 / 通勤 / 极简 / 复古 / 学院 / 街头 / 温柔 等
    - fit：版型，如 宽松 / 修身 / 直筒 /  oversize / 常规 等（不确定可写 常规）
    - pattern：图案，如 纯色 / 条纹 / 格子 / 印花 / 拼色 / Logo 等（不确定可写 纯色）
+   - name：为该单品起一个简洁、直观的中文名称，便于在衣橱中快速识别，例如「白色棉质休闲上衣」「黑色直筒牛仔裤」「米色帆布托特包」。命名应包含颜色、材质/类别等关键信息（不超过 12 个字）。
 
 输出要求：
-- 必须以 JSON 数组返回，例如：[{"category":"上衣","color":"白","season":"夏","material":"棉","style":"休闲","fit":"宽松","pattern":"纯色"}]
+- 必须以 JSON 数组返回，例如：[{"category":"上衣","color":"白","season":"夏","material":"棉","style":"休闲","fit":"宽松","pattern":"纯色","name":"白色棉质休闲上衣"}]
 - 不要输出任何解释文字、不要使用 markdown 代码块，只输出能被 JSON.parse 解析的纯 JSON。
 - 如果没有识别到任何单品，返回空数组 []。
 """.strip()
@@ -48,13 +49,15 @@ def build_segment_prompt(meta: dict) -> str:
     material = meta.get("material", "")
     style = meta.get("style", "")
     pattern = meta.get("pattern", "")
-
+   
     # 类别中文描述（analyze 已返回中文，这里做兜底映射）
     cat_zh = {
         "Top": "上衣", "Bottom": "下装", "Shoes": "鞋", "": "包",
     }.get(category, category)
 
-    subject = f"这件{cat_zh}"
+    name = meta.get("name", cat_zh)
+
+    subject =  f"该单品的名称为「{name}」"
     traits = []
     if color:
         traits.append(color)

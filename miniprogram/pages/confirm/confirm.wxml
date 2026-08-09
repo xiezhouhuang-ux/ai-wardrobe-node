@@ -43,6 +43,7 @@
         data-url="{{item.previewUrl}}"
       ></image>
       <view class="meta">
+        <view class="row0" wx:if="{{item.name}}">{{item.name}}</view>
         <view class="row1">
           <text class="cate">{{item.categoryLabel}}</text>
           <text class="color">{{item.color}}</text>

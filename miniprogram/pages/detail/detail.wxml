@@ -8,13 +8,6 @@
       <!-- <view class="hero-tag">AI 抠图 · 正面</view> -->
     </view>
 
-    <view class="source-box" wx:if="{{item.sourcePhoto}}" bindtap="onPreviewSource">
-      <view class="source-head">
-        <text class="source-title">原始照片</text>
-        <text class="source-hint">点击查看原图 ›</text>
-      </view>
-      <image class="source-img" src="{{item.sourcePhoto}}" mode="aspectFill"></image>
-    </view>
   </view>
 
   <view class="meta-card">
@@ -56,6 +49,17 @@
     </view>
     <view class="action-arrow">›</view>
   </view>
+   <view class="action-card" wx:if="{{item.sourcePhoto}}" bindtap="onPreviewSource">
+    <view class="action-icon"> 
+      <image class="source-thumb" src="{{item.sourcePhoto}}" mode="aspectFill"></image>
+    </view>
+    <view class="action-body">
+      <view class="action-title">原始照片</view>
+      <view class="action-desc">AI 点击查看原图</view>
+    </view>
+    <view class="action-arrow">›</view>
+  </view>
+
 
   <view class="footer-row">
     <button class="btn btn-secondary footer-btn" bindtap="onBack">返回衣橱</button>

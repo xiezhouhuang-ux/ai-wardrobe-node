@@ -110,6 +110,23 @@ def _norm_season(season) -> str:
     return "四季"
 
 
+def _norm_name(raw: dict, cat_zh: str) -> str:
+    """生成单品名称：优先使用模型返回的 name，否则用属性兜底拼接。"""
+    name = str(raw.get("name") or "").strip()
+    if name:
+        return name[:12]
+    # 兜底：颜色 + 材质（非未知时） + 类别
+    parts = []
+    color = _norm_color(raw.get("color"))
+    if color and color not in ("未知", "其他"):
+        parts.append(color)
+    material = str(raw.get("material") or "").strip()
+    if material and material not in ("未知",):
+        parts.append(material)
+    parts.append(cat_zh)
+    return "".join(parts)[:12]
+
+
 def normalize(raw: dict) -> dict:
     cat_en = _norm_category(raw.get("category"))
     cat_zh = CATEGORY_LABEL_ZH.get(cat_en, cat_en)
@@ -121,6 +138,7 @@ def normalize(raw: dict) -> dict:
         "style": str(raw.get("style") or "休闲").strip() or "休闲",
         "fit": str(raw.get("fit") or "常规").strip() or "常规",
         "pattern": str(raw.get("pattern") or "纯色").strip() or "纯色",
+        "name": _norm_name(raw, cat_zh),
     }
 
 

@@ -22,7 +22,7 @@ Page({
       const styleIdx = Math.max(0, styles.indexOf(it.style))
       const seasonsList = (it.season || '').split(/[、,\s]+/).filter(Boolean)
       const picked = seasonsList.length ? seasonsList : ['春', '秋']
-      return { ...it, _on: true, catIdx, colorIdx, styleIdx, seasons: picked, name: '' }
+      return { ...it, _on: true, catIdx, colorIdx, styleIdx, seasons: picked, name: it.name || '' }
     })
     this.setData({ items })
     this.refreshChecked(items)

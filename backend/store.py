@@ -89,6 +89,7 @@ def _row_to_item(row: dict) -> dict:
         "style": row.get("style") or "",
         "fit": row.get("fit") or "",
         "pattern": row.get("pattern") or "",
+        "name": row.get("name") or "",
         "imageUrl": row.get("image_url") or "",
         "imagePath": row.get("image_path") or "",
         "transparent": bool(row.get("transparent")),
@@ -128,7 +129,7 @@ def add_items(items: list, openid: str = "") -> None:
         return
     cols = (
         "id", "openid", "category", "color", "season", "material", "style", "fit",
-        "pattern", "image_url", "image_path",
+        "pattern", "name", "image_url", "image_path",
         "transparent", "segment_method", "source_photo", "created_at",
     )
     sql = (
@@ -152,6 +153,7 @@ def add_items(items: list, openid: str = "") -> None:
                     it.get("style", ""),
                     it.get("fit", ""),
                     it.get("pattern", ""),
+                    it.get("name", ""),
                     it.get("imageUrl", ""),
                     it.get("imagePath", ""),
                     1 if it.get("transparent") else 0,
@@ -481,6 +483,7 @@ def init_db() -> None:
                     style VARCHAR(64) NOT NULL DEFAULT '',
                     fit VARCHAR(64) NOT NULL DEFAULT '',
                     pattern VARCHAR(64) NOT NULL DEFAULT '',
+                    name VARCHAR(64) NOT NULL DEFAULT '',
                     brand VARCHAR(128) NOT NULL DEFAULT '',
                     has_logo TINYINT(1) NOT NULL DEFAULT 0,
                     image_url VARCHAR(512) NOT NULL DEFAULT '',
@@ -561,6 +564,18 @@ def init_db() -> None:
             _ensure_openid_column(cur, "tryon_records")
             # user_photo 是单行用户表：若是旧库建表时可能尚未带 openid 列，补列（允许 NULL 避免旧数据冲突）
             _ensure_openid_column(cur, "user_photo", not_null=False)
+            # 兼容旧库：items 表补齐 name 列（新部署建表时已包含，这里幂等）
+            try:
+                cur.execute(
+                    "SELECT 1 FROM information_schema.columns "
+                    "WHERE table_schema = DATABASE() AND table_name='items' AND column_name='name'"
+                )
+                if not cur.fetchone():
+                    cur.execute(
+                        "ALTER TABLE items ADD COLUMN name VARCHAR(64) NOT NULL DEFAULT ''"
+                    )
+            except Exception as e:
+                logger.warning("为 items 表补 name 列失败（可忽略）: %s", e)
         c.commit()
     logger.info("MySQL 数据库初始化完成（database=%s）", db_name)
 
