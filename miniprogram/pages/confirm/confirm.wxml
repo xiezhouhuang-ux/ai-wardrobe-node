@@ -33,6 +33,15 @@
       data-index="{{index}}"
     >
       <view class="checkbox {{item._on ? 'on' : ''}}"></view>
+      <!-- 分割完成后显示缩略图，点击可放大预览 -->
+      <image
+        wx:if="{{item._status === 'done' && item.previewUrl}}"
+        class="thumb"
+        src="{{item.previewUrl}}"
+        mode="aspectFill"
+        catchtap="onPreviewItem"
+        data-url="{{item.previewUrl}}"
+      ></image>
       <view class="meta">
         <view class="row1">
           <text class="cate">{{item.categoryLabel}}</text>

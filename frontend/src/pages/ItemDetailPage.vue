@@ -23,8 +23,6 @@ const fields = computed(() => {
   if (it.style) f.push({ k: '风格', v: it.style })
   if (it.fit && it.fit !== '常规') f.push({ k: '版型', v: it.fit })
   if (it.pattern && it.pattern !== '纯色') f.push({ k: '图案', v: it.pattern })
-  if (it.brand) f.push({ k: '品牌', v: it.brand })
-  if (typeof it.hasLogo === 'boolean') f.push({ k: '是否有 Logo', v: it.hasLogo ? '有' : '无' })
   f.push({ k: '分割方式', v: segmentMethodLabel(it.segmentMethod) })
   if (it.createdAt) {
     const d = new Date(it.createdAt)

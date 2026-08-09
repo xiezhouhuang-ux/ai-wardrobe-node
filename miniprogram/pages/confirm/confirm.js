@@ -50,6 +50,13 @@ Page({
     this.refreshSelection()
   },
 
+  // 点击已分割单品的缩略图，放大预览（catchtap 已阻止冒泡，不会触发勾选）
+  onPreviewItem(e) {
+    const url = e.currentTarget.dataset.url
+    if (!url) return
+    wx.previewImage({ current: url, urls: [url] })
+  },
+
   toggleAll() {
     if (this.data.phase !== 'select') return
     const next = !this.data.allChecked

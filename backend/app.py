@@ -191,8 +191,6 @@ def api_process(
                 "style": meta["style"],
                 "fit": meta["fit"],
                 "pattern": meta["pattern"],
-                "brand": meta["brand"],
-                "hasLogo": meta["hasLogo"],
                 "imageUrl": image_url,
                 "imagePath": image_path,
                 "transparent": seg["transparent"],

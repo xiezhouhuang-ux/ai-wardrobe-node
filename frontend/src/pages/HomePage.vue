@@ -21,7 +21,7 @@ const filtered = computed(() => {
     if (q) {
       const hay = [
         it.category, it.color, it.season, it.material,
-        it.style, it.fit, it.pattern, it.brand,
+        it.style, it.fit, it.pattern,
       ].join(' ').toLowerCase()
       if (!hay.includes(q)) return false
     }

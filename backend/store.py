@@ -73,8 +73,6 @@ def normalize_item_for_api(item: dict) -> dict:
         it["season"] = season
     if isinstance(season, str) and season in _SEASON_TO_ZH:
         it["season"] = _SEASON_TO_ZH[season]
-    if str(it.get("brand", "")).strip().lower() in ("unknown", "none", "null", ""):
-        it["brand"] = ""
     return it
 
 
@@ -91,8 +89,6 @@ def _row_to_item(row: dict) -> dict:
         "style": row.get("style") or "",
         "fit": row.get("fit") or "",
         "pattern": row.get("pattern") or "",
-        "brand": row.get("brand") or "",
-        "hasLogo": bool(row.get("has_logo")),
         "imageUrl": row.get("image_url") or "",
         "imagePath": row.get("image_path") or "",
         "transparent": bool(row.get("transparent")),
@@ -132,7 +128,7 @@ def add_items(items: list, openid: str = "") -> None:
         return
     cols = (
         "id", "openid", "category", "color", "season", "material", "style", "fit",
-        "pattern", "brand", "has_logo", "image_url", "image_path",
+        "pattern", "image_url", "image_path",
         "transparent", "segment_method", "source_photo", "created_at",
     )
     sql = (
@@ -156,8 +152,6 @@ def add_items(items: list, openid: str = "") -> None:
                     it.get("style", ""),
                     it.get("fit", ""),
                     it.get("pattern", ""),
-                    it.get("brand", ""),
-                    1 if it.get("hasLogo") else 0,
                     it.get("imageUrl", ""),
                     it.get("imagePath", ""),
                     1 if it.get("transparent") else 0,

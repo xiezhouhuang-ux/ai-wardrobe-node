@@ -62,7 +62,28 @@ Page({
       }
       const groupList = CATEGORIES.map(cat => ({ cat, items: map[cat] }))
       this.setData({ wardrobe: items, groupList })
+      // 若从详情页带过来待选中的单品，加载完成后自动选中
+      this.applyPendingSelection()
     } catch (e) { /* ignore */ }
+  },
+
+  // 自动选中从详情页带入的单品（仅当该单品属于当前可选四类时）
+  applyPendingSelection() {
+    const app = getApp() || {}
+    const pendingId = app.globalData && app.globalData.pendingTryonItemId
+    if (!pendingId) return
+    // 消费一次，避免重复选中
+    app.globalData.pendingTryonItemId = ''
+    const it = (this.data.wardrobe || []).find(i => String(i.id) === String(pendingId))
+    if (!it) return
+    const cat = it.category
+    if (!CATEGORIES.includes(cat)) {
+      // 该单品不在当前可选分类（如帽子），不自动选中
+      return
+    }
+    const selected = Object.assign({}, this.data.selected)
+    selected[cat] = it.id
+    this.updateSelectedItems(selected)
   },
 
   onUploadUser() {

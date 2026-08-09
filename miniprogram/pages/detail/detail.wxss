@@ -13,7 +13,7 @@
 }
 .hero-cover {
   position: relative;
-  background: #efe5d7;
+  background: #FFF;
   border-radius: var(--radius-md, 24rpx);
   width: 100%;
   height: 700rpx;

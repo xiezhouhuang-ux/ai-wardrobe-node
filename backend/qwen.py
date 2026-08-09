@@ -30,18 +30,6 @@ COLOR_MAP_ZH = {
     "silver": "银", "gold": "金",
 }
 
-# 常见品牌（用于把英文品牌映射到中文/原样）
-KNOWN_BRANDS = {
-    "nike": "Nike", "adidas": "Adidas", "uniqlo": "优衣库", "zara": "Zara",
-    "hm": "H&M", "gucci": "Gucci", "chanel": "Chanel", "lv": "Louis Vuitton",
-    "louisvuitton": "Louis Vuitton", "prada": "Prada", "supreme": "Supreme",
-    "newbalance": "New Balance", "converse": "Converse", "vans": "Vans",
-    "nba": "NBA", "champion": "Champion", "fila": "Fila", "puma": "Puma",
-    "lacoste": "Lacoste", "ralphlauren": "Ralph Lauren", "tommy": "Tommy Hilfiger",
-    "ck": "Calvin Klein", "calvinklein": "Calvin Klein", "bosideng": "波司登",
-    "li ning": "李宁", "lining": "李宁", "anta": "安踏", "erke": "鸿星尔克",
-}
-
 SEASON_VOCAB = {"春", "夏", "秋", "冬", "四季"}
 
 
@@ -112,21 +100,6 @@ def _norm_color(color) -> str:
     return "其他"
 
 
-def _norm_brand(brand) -> str:
-    if not brand:
-        return ""
-    b = str(brand).strip()
-    if re.search(r"[一-龥]", b):
-        return b
-    key = b.lower().replace(" ", "")
-    if key in KNOWN_BRANDS:
-        return KNOWN_BRANDS[key]
-    # 形如 “Nike” 直接保留；纯英文小写尝试首字母大写
-    if re.fullmatch(r"[a-zA-Z0-9 &.'/+-]+", b):
-        return b
-    return ""
-
-
 def _norm_season(season) -> str:
     if not season:
         return "四季"
@@ -148,8 +121,6 @@ def normalize(raw: dict) -> dict:
         "style": str(raw.get("style") or "休闲").strip() or "休闲",
         "fit": str(raw.get("fit") or "常规").strip() or "常规",
         "pattern": str(raw.get("pattern") or "纯色").strip() or "纯色",
-        "brand": _norm_brand(raw.get("brand")),
-        "hasLogo": bool(raw.get("hasLogo", False)),
     }
 
 

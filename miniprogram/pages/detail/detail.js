@@ -22,6 +22,7 @@ Page({
     try {
       const it = await api.getItem(this.itemId)
       it.image = this.fixImage(it.imageUrl || it.image)
+      it.sourcePhoto = this.fixImage(it.sourcePhoto || '')
       const dotColor = categoryColors[it.category] || '#c96b4a'
       const seasonText = (it.season || '').replace(/[、,\s]+/g, ' · ')
       const hashList = (it.season || '').split(/[、,\s]+/).filter(Boolean)
@@ -33,11 +34,20 @@ Page({
 
   onBack() { wx.navigateBack() },
 
-  onGenerate() {
-    wx.showToast({ title: 'AI 搭配生成中', icon: 'none' })
+  // 点击原图预览：查看原图大图
+  onPreviewSource() {
+    const src = this.data.item && this.data.item.sourcePhoto
+    if (!src) return
+    wx.previewImage({
+      current: src,
+      urls: [src]
+    })
   },
 
+  // 用这件单品生成搭配：记录待选中单品，跳转到 AI 搭配页（tabBar，无法传参，借助全局）
   onTryOn() {
+    const app = getApp() || {}
+    if (app.globalData) app.globalData.pendingTryonItemId = this.itemId
     wx.switchTab({ url: '/pages/tryon/tryon' })
   },
 

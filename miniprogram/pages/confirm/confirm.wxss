@@ -127,6 +127,17 @@
   to { transform: rotate(360deg); }
 }
 
+/* 分割完成后的缩略图 */
+.thumb {
+  flex: none;
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: var(--radius-md, 24rpx);
+  background: var(--color-surface-2, #efe5d7);
+  border: 2rpx solid var(--color-line, #e7dccb);
+}
+.thumb:active { opacity: 0.85; }
+
 .meta { flex: 1; }
 .row1 { display: flex; align-items: center; gap: 12rpx; }
 .cate { font-size: 28rpx; font-weight: 600; color: var(--color-text, #3a2a1f); }

@@ -82,7 +82,7 @@ Page({
     this.setData({ saving: true })
     try {
       const items = checked.map(it => {
-        // 保留分割阶段返回的全部原始字段（material/fit/pattern/brand/hasLogo/
+        // 保留分割阶段返回的全部原始字段（material/fit/pattern/
         // sourcePhoto/transparent/segmentMethod/imagePath/id 等），
         // 仅覆盖用户在 UI 上可编辑的字段，并剔除前端专用索引字段
         const out = { ...it }

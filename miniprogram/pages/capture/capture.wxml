@@ -5,7 +5,7 @@
   <!-- 大型虚线框：拍照/选图 -->
   <view class="capture-frame {{tempPath ? 'has-image' : ''}} {{analyzing ? 'disabled' : ''}}" bindtap="{{analyzing ? '' : 'onPick'}}">
     <block wx:if="{{tempPath}}">
-      <image class="capture-img" src="{{tempPath}}" mode="aspectFill" bindtap="onPreview"></image>
+      <image class="capture-img" src="{{tempPath}}" mode="aspectFill"></image>
       <view class="capture-overlay" wx:if="{{!analyzing}}">轻触重新选择</view>
       <view class="capture-overlay" wx:else>识别中…</view>
     </block>

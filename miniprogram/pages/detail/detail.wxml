@@ -5,13 +5,21 @@
   <view class="hero-card">
     <view class="hero-cover">
       <image class="hero-img" src="{{item.image}}" mode="aspectFit"></image>
-      <view class="hero-tag">AI 抠图 · 正面</view>
+      <!-- <view class="hero-tag">AI 抠图 · 正面</view> -->
+    </view>
+
+    <view class="source-box" wx:if="{{item.sourcePhoto}}" bindtap="onPreviewSource">
+      <view class="source-head">
+        <text class="source-title">原始照片</text>
+        <text class="source-hint">点击查看原图 ›</text>
+      </view>
+      <image class="source-img" src="{{item.sourcePhoto}}" mode="aspectFill"></image>
     </view>
   </view>
 
   <view class="meta-card">
     <view class="meta-name">{{item.name || item.category}}</view>
-    <view class="meta-sub">{{item.color}} · {{item.style}}</view>
+    <!-- <view class="meta-sub">{{item.color}} · {{item.style}}</view> -->
 
     <view class="meta-grid">
       <view class="meta-cell">
@@ -36,21 +44,20 @@
     </view>
 
     <view class="hash-row" wx:if="{{hashList.length}}">
-      <text class="hash" wx:for="{{hashList}}" wx:key="*this">#{{item}}</text>
+      <!-- <text class="hash" wx:for="{{hashList}}" wx:key="*this">#{{item}}</text> -->
     </view>
   </view>
 
-  <view class="action-card">
+  <view class="action-card" bindtap="onTryOn">
     <view class="action-icon">🧩</view>
     <view class="action-body">
       <view class="action-title">用这件单品生成搭配</view>
       <view class="action-desc">AI 推荐与之相配的穿搭方案</view>
     </view>
-    <view class="action-arrow" bindtap="onTryOn">›</view>
+    <view class="action-arrow">›</view>
   </view>
 
   <view class="footer-row">
-    <button class="btn btn-primary footer-btn" bindtap="onGenerate">生成搭配</button>
     <button class="btn btn-secondary footer-btn" bindtap="onBack">返回衣橱</button>
     <button class="btn btn-ghost footer-btn" bindtap="onDelete">删除卡片</button>
   </view>
