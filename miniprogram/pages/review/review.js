@@ -1,15 +1,12 @@
 // pages/review/review.js
 const api = require('../../utils/api.js')
 const storage = require('../../utils/storage.js')
-const { categories, colors, styles, seasons } = require('../../utils/constants.js')
+const { categories } = require('../../utils/constants.js')
 
 Page({
   data: {
     items: [],
     categories,
-    colors,
-    styles,
-    seasonsList: seasons,
     checkedCount: 0,
     saving: false
   },
@@ -18,11 +15,9 @@ Page({
     const data = storage.get('pendingProcessed') || { items: [] }
     const items = (data.items || []).map(it => {
       const catIdx = Math.max(0, categories.indexOf(it.category))
-      const colorIdx = Math.max(0, colors.indexOf(it.color))
-      const styleIdx = Math.max(0, styles.indexOf(it.style))
-      const seasonsList = (it.season || '').split(/[、,\s]+/).filter(Boolean)
-      const picked = seasonsList.length ? seasonsList : ['春', '秋']
-      return { ...it, _on: true, catIdx, colorIdx, styleIdx, seasons: picked, name: it.name || '' }
+      // 颜色/风格/季节由 VL 自动识别后直接以文本展示，可手动修改，不再依赖预设字典
+      const season = (it.season || '').split(/[、,\s]+/).filter(Boolean).join('、')
+      return { ...it, _on: true, catIdx, season, name: it.name || '' }
     })
     this.setData({ items })
     this.refreshChecked(items)
@@ -52,25 +47,17 @@ Page({
     const key = `items[${idx}].catIdx`
     this.setData({ [key]: Number(e.detail.value) })
   },
-  onChangeColor(e) {
+  onColorInput(e) {
     const idx = e.currentTarget.dataset.idx
-    const key = `items[${idx}].colorIdx`
-    this.setData({ [key]: Number(e.detail.value) })
+    this.setData({ [`items[${idx}].color`]: e.detail.value })
   },
-  onChangeStyle(e) {
+  onStyleInput(e) {
     const idx = e.currentTarget.dataset.idx
-    const key = `items[${idx}].styleIdx`
-    this.setData({ [key]: Number(e.detail.value) })
+    this.setData({ [`items[${idx}].style`]: e.detail.value })
   },
-
-  onToggleSeason(e) {
+  onSeasonInput(e) {
     const idx = e.currentTarget.dataset.idx
-    const s = e.currentTarget.dataset.s
-    const items = this.data.items.slice()
-    const set = new Set(items[idx].seasons || [])
-    if (set.has(s)) set.delete(s); else set.add(s)
-    items[idx].seasons = Array.from(set)
-    this.setData({ items })
+    this.setData({ [`items[${idx}].season`]: e.detail.value })
   },
 
   async onSave() {
@@ -87,16 +74,14 @@ Page({
         // 仅覆盖用户在 UI 上可编辑的字段，并剔除前端专用索引字段
         const out = { ...it }
         out.category = this.data.categories[it.catIdx]
-        out.color = this.data.colors[it.colorIdx] || ''
-        out.style = this.data.styles[it.styleIdx] || ''
-        out.season = (it.seasons || []).join('、')
+        out.color = (it.color || '').trim()
+        out.style = (it.style || '').trim()
+        out.season = (it.season || '').trim()
         out.name = it.name || ''
         out.imageUrl = it.imageUrl || it.previewUrl
         delete out._on
         delete out.catIdx
-        delete out.colorIdx
-        delete out.styleIdx
-        delete out.seasons
+        delete out.season
         delete out.previewUrl
         return out
       })

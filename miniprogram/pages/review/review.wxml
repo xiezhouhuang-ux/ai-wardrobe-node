@@ -26,36 +26,20 @@
           </picker>
           <view class="row-arrow">▼</view>
         </view>
-        <!-- 颜色选择器 -->
+        <!-- 颜色（VL 自动识别，可手动修改） -->
         <view class="row-line">
           <view class="row-label">颜色</view>
-          <picker mode="selector" range="{{colors}}" value="{{item.colorIdx}}" data-idx="{{index}}" bindchange="onChangeColor">
-            <view class="row-value">{{colors[item.colorIdx] || ''}}</view>
-          </picker>
-          <view class="row-arrow">▼</view>
+          <input class="row-input" value="{{item.color}}" placeholder="如 白 / 藏青" placeholder-class="row-ph" data-idx="{{index}}" bindinput="onColorInput" />
         </view>
-        <!-- 风格选择器 -->
+        <!-- 风格（VL 自动识别，可手动修改） -->
         <view class="row-line">
           <view class="row-label">风格</view>
-          <picker mode="selector" range="{{styles}}" value="{{item.styleIdx}}" data-idx="{{index}}" bindchange="onChangeStyle">
-            <view class="row-value">{{styles[item.styleIdx] || ''}}</view>
-          </picker>
-          <view class="row-arrow">▼</view>
+          <input class="row-input" value="{{item.style}}" placeholder="如 休闲 / 通勤" placeholder-class="row-ph" data-idx="{{index}}" bindinput="onStyleInput" />
         </view>
-        <!-- 季节标签 -->
-        <view class="row-seasons">
+        <!-- 季节（VL 自动识别，可手动修改） -->
+        <view class="row-line">
           <view class="row-label">季节</view>
-          <view class="season-list">
-            <view
-              class="season-chip {{item.seasons.includes(s) ? 'chip-on' : ''}}"
-              wx:for="{{seasonsList}}"
-              wx:key="*this"
-              wx:for-item="s"
-              data-idx="{{index}}"
-              data-s="{{s}}"
-              bindtap="onToggleSeason"
-            >{{s}}</view>
-          </view>
+          <input class="row-input" value="{{item.season}}" placeholder="如 春、秋" placeholder-class="row-ph" data-idx="{{index}}" bindinput="onSeasonInput" />
         </view>
       </view>
     </view>

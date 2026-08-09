@@ -65,28 +65,6 @@
   font-size: 22rpx;
 }
 
-.row-seasons {
-  display: flex;
-  align-items: center;
-  padding-top: 6rpx;
-}
-.season-list {
-  flex: 1;
-  display: flex;
-  gap: 12rpx;
-}
-.season-chip {
-  padding: 4rpx 18rpx;
-  border-radius: 999rpx;
-  background: var(--color-surface-2, #efe5d7);
-  color: var(--color-text-soft, #8b7a6a);
-  font-size: 22rpx;
-}
-.chip-on {
-  background: var(--color-accent, #c96b4a);
-  color: #fffaf3;
-}
-
 .footer {
   position: fixed;
   left: 0;

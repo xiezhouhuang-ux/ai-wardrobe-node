@@ -45,10 +45,14 @@
       <view class="meta">
         <view class="row0" wx:if="{{item.name}}">{{item.name}}</view>
         <view class="row1">
-          <text class="cate">{{item.categoryLabel}}</text>
-          <text class="color">{{item.color}}</text>
+          <text class="tag tag-cate">{{item.categoryLabel}}</text>
+          <text class="tag tag-color" wx:if="{{item.color}}">{{item.color}}</text>
         </view>
-        <view class="row2">{{item.style}} · {{item.season}} · {{item.material}}</view>
+        <view class="row2">
+          <text class="tag tag-soft" wx:if="{{item.style}}">{{item.style}}</text>
+          <text class="tag tag-soft" wx:if="{{item.season}}">{{item.season}}</text>
+          <text class="tag tag-soft" wx:if="{{item.material}}">{{item.material}}</text>
+        </view>
       </view>
       <!-- 单品处理状态 -->
       <view class="cell-status">
