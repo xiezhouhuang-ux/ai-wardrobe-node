@@ -164,7 +164,7 @@ def virtual_tryon(
                 {"role": "user", "content": content}
             ]
         },
-        "parameters": {"n": 1, "watermark": False},
+        "parameters": {"n": 1, "size": "1024*1536", "watermark": False},
     }
 
     headers = {

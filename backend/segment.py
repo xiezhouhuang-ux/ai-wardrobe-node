@@ -74,6 +74,7 @@ def segment_with_qwen_image(image_bytes: bytes, meta: dict) -> str:
         },
         "parameters": {
             "n": 1,
+            "size": "1024*1536",
             "watermark": False,
         },
     }
@@ -141,7 +142,7 @@ def download_to_local(oss_url: str, out_path: str) -> None:
 
     png = normalize_to_png(resp.content)
     Path(out_path).write_bytes(png)
-    logger.info("已下载试穿结果图 -> %s (%d bytes)", out_path, len(png))
+    logger.info("已下载分割结果图 -> %s (%d bytes)", out_path, len(png))
 
 
 def extract_item(src_path: str, meta: dict) -> dict:
