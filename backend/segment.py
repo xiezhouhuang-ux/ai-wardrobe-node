@@ -74,7 +74,7 @@ def segment_with_qwen_image(image_bytes: bytes, meta: dict) -> str:
         },
         "parameters": {
             "n": 1,
-            "size": "1024*1536",
+            "size": "768*1152",
             "watermark": False,
         },
     }
