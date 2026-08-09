@@ -2,10 +2,10 @@
   <view class="auth-card">
     <view class="logo">👗</view>
     <view class="title">AI 智能衣橱</view>
-    <view class="desc">登录后即可同步你的衣橱、穿搭记录与 AI 试穿结果</view>
+    <view class="desc">登录后即可同步你的衣橱与 AI 试穿结果</view>
     <button class="auth-btn" bindtap="onAuth" loading="{{loading}}">
       {{loading ? '授权中…' : '微信授权登录'}}
     </button>
-    <view class="skip" bindtap="onCancel">暂不登录</view>
+    <!-- <view class="skip" bindtap="onCancel">暂不登录</view> -->
   </view>
 </view>

@@ -6,7 +6,8 @@ Page({
   data: {
     records: [],
     loading: false,
-    empty: false
+    empty: false,
+    previewUrl: ''
   },
 
   onShow() {
@@ -45,12 +46,23 @@ Page({
     }
   },
 
+  // 点击记录：弹出试穿图片预览（不跳转）
   onViewResult(e) {
-    const { id, url, ids } = e.currentTarget.dataset
-    const q = `/pages/tryon-result/tryon-result?id=${id}` +
-      `&resultUrl=${encodeURIComponent(url || '')}` +
-      `&ids=${encodeURIComponent(ids || '[]')}`
-    wx.navigateTo({ url: q })
+    const { url } = e.currentTarget.dataset
+    if (!url) return
+    this.setData({ previewUrl: url })
+  },
+
+  // 关闭预览弹窗
+  onClosePreview() {
+    this.setData({ previewUrl: '' })
+  },
+
+  // 点击预览大图进入系统级查看（可保存/缩放）
+  onPreviewImage() {
+    const url = this.data.previewUrl
+    if (!url) return
+    wx.previewImage({ current: url, urls: [url] })
   },
 
   onDelete(e) {
