@@ -8,6 +8,7 @@ backend/items/
 backend/data/
 backend/tryon_results/
 backend/.ai-wardrobe.pid
+__pycache__
 
 # 依赖
 node_modules/

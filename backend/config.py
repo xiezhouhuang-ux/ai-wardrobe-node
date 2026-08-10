@@ -55,11 +55,20 @@ MYSQL_USER = os.getenv("MYSQL_USER", "root")
 MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "")
 MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "ai_wardrobe")
 
-# 兼容旧代码引用：保留 ROOT 派生目录常量
+# 静态资源统一放在 uploads/ 目录下，再用子文件夹区分不同用途：
+#   uploads/photos/        用户正面照
+#   uploads/items/         衣橱单品图
+#   uploads/tryon_results/ AI 试穿结果图
+# 对外访问 URL 统一为 /uploads/<子目录>/<文件名>
 UPLOADS = str(ROOT / "uploads")
-ITEMS = str(ROOT / "items")
+UPLOADS_PHOTOS = str(ROOT / "uploads" / "photos")
+UPLOADS_ITEMS = str(ROOT / "uploads" / "items")
+UPLOADS_TRYON = str(ROOT / "uploads" / "tryon_results")
 DATA = str(ROOT / "data")
-TRYON_RESULTS = str(ROOT / "tryon_results")
+
+# 兼容旧代码引用：保留原有目录常量（映射到 uploads/ 下的子目录）
+ITEMS = UPLOADS_ITEMS
+TRYON_RESULTS = UPLOADS_TRYON
 
 MYSQL_CONFIG = {
     "host": MYSQL_HOST,
@@ -74,6 +83,11 @@ MYSQL_CONFIG = {
 
 
 def ensure_dirs() -> None:
-    # 保留原有目录（上传/分割/试穿结果图仍然存本地文件系统）
-    for d in (ROOT / "uploads", ROOT / "items", ROOT / "data", ROOT / "tryon_results"):
+    # 静态资源统一收敛到 uploads/ 下的子目录
+    for d in (
+        ROOT / "uploads" / "photos",
+        ROOT / "uploads" / "items",
+        ROOT / "uploads" / "tryon_results",
+        ROOT / "data",
+    ):
         os.makedirs(str(d), exist_ok=True)

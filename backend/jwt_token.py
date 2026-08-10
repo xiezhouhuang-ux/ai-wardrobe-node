@@ -34,12 +34,13 @@ def _secret() -> str:
     return secret
 
 
-def create_token(openid: str) -> str:
-    """为指定 openid 签发 JWT（HS256，含 exp/iat）。"""
+def create_token(openid: str, role: str = "user") -> str:
+    """为指定 openid 签发 JWT（HS256，含 exp/iat/role）。"""
     secret = _secret()
     now = int(time.time())
     payload = {
         "openid": openid,
+        "role": role,
         "iat": now,
         "exp": now + EXP_SECONDS,
     }
@@ -60,3 +61,15 @@ def decode_token(token: str) -> str:
     except Exception as e:  # noqa: BLE001 - 任何失败都视为未登录
         logger.warning("JWT 校验失败: %s", e)
         return ""
+
+
+def decode_token_full(token: str) -> dict:
+    """校验 JWT 并返回完整 payload（含 role）；失败返回空 dict。"""
+    if not token:
+        return {}
+    secret = _secret()
+    try:
+        return jwt.decode(token, secret, algorithms=[ALGO])
+    except Exception as e:  # noqa: BLE001
+        logger.warning("JWT 校验失败: %s", e)
+        return {}

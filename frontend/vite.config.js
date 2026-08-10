@@ -7,9 +7,8 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': 'http://localhost:3000',
+      // 静态资源统一收敛到 /uploads 下（photos / items / tryon_results 子目录）
       '/uploads': 'http://localhost:3000',
-      '/items': 'http://localhost:3000',
-      '/tryon_results': 'http://localhost:3000',
     },
   },
 })

@@ -93,7 +93,15 @@ def segment_with_qwen_image(image_bytes: bytes, meta: dict) -> str:
         logger.error("DashScope 分割请求失败 (status=%s), body=%s", resp.status_code, err_body)
         resp.raise_for_status()
 
-    data = resp.json()
+    try:
+        data = resp.json()
+    except Exception as e:  # noqa: BLE001
+        logger.error("DashScope 分割响应解析 JSON 失败: %s, body=%s", e, resp.text[:1000])
+        raise RuntimeError(f"DashScope 分割响应解析失败: {e}")
+    if not isinstance(data, dict):
+        # 接口可能返回 null / 非对象结构，避免 'NoneType' object has no attribute 'get'
+        logger.error("DashScope 分割响应非预期结构: %s", str(data)[:1000])
+        raise RuntimeError(f"DashScope 分割返回非预期结构: {data}")
     logger.info("DashScope 分割原始响应 (截断): %s", str(data)[:2000])
 
     output = data.get("output") or {}
@@ -169,7 +177,7 @@ def extract_item(src_path: str, meta: dict) -> dict:
 
     # demo 模式：无 API Key，无法调用在线分割，返回原图本地地址
     return {
-        "imageUrl": "/uploads/" + Path(src_path).name,
+        "imageUrl": "/uploads/photos/" + Path(src_path).name,
         "imagePath": str(src_path),
         "transparent": False,
         "segmentMethod": "original",
