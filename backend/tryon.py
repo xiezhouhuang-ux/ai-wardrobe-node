@@ -14,7 +14,7 @@ from typing import Any
 import requests
 from PIL import Image
 
-from config import API_KEY, IMAGE_ENDPOINT, IMAGE_MODEL
+from config import API_KEY, IMAGE_ENDPOINT, IMAGE_MODEL, ROOT
 
 logger = logging.getLogger("tryon")
 
@@ -106,7 +106,7 @@ def virtual_tryon(
 
     valid_items = []
     for it in item_images:
-        img_path: Any = it.get("imagePath", "")
+        img_path: str = str(Path(ROOT) / it.get('imageUrl').lstrip("/"))
         if not Path(img_path).exists():
             logger.warning("单品图片不存在，跳过: %s", img_path)
             continue

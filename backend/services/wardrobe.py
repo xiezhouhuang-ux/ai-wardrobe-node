@@ -6,7 +6,7 @@ import logging
 import time
 from pathlib import Path
 
-from config import ITEMS
+from config import ITEMS, UPLOADS_PHOTOS
 import store
 from qwen import detect_clothing
 from core.files import new_id, save_upload, download_image_to
@@ -21,7 +21,7 @@ def process_photo(openid: str, files) -> dict:
         raise ValueError("请上传正面照")
     upload = files[0]
     src = save_upload(upload)
-    photo_url = f"/uploads/photos/{src.name}"
+    photo_url = f"{UPLOADS_PHOTOS}/{src.name}"
     try:
         items = detect_clothing(str(src))
     except Exception as e:  # noqa: BLE001
@@ -31,7 +31,7 @@ def process_photo(openid: str, files) -> dict:
     for idx, it in enumerate(items):
         it["id"] = new_id("it")
         it["createdAt"] = int(time.time() * 1000)
-        it["imageUrl"] = f"/uploads/photos/{src.name}"
+        it["imageUrl"] = f"{UPLOADS_PHOTOS}/{src.name}"
         it["imagePath"] = str(src)
         valid.append(it)
         if idx >= 9:
@@ -49,7 +49,7 @@ def analyze(openid: str, files) -> dict:
         raise ValueError("请上传服装照")
     upload = files[0]
     src = save_upload(upload)
-    photo_url = f"/uploads/photos/{src.name}"
+    photo_url = f"{UPLOADS_PHOTOS}/{src.name}"
     try:
         items = detect_clothing(str(src))
     except Exception as e:  # noqa: BLE001
@@ -78,7 +78,7 @@ def commit(openid: str, items: list) -> dict:
             out_name = new_id("it") + ".png"
             out_path = str(Path(ITEMS) / out_name)
             if download_image_to(img_url, out_path):
-                it["imageUrl"] = f"/uploads/items/{out_name}"
+                it["imageUrl"] = f"{ITEMS}/{out_name}"
                 it["imagePath"] = out_path
     store.add_items(items, openid)
     return {"ok": True, "count": len(items), "items": items}

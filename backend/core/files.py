@@ -43,10 +43,6 @@ def download_image_to(url: str, out_path: str) -> bool:
             )
             resp.raise_for_status()
             Path(out_path).write_bytes(resp.content)
-        elif url.startswith("/uploads/items/"):
-            src = Path(ROOT) / url.lstrip("/")
-            if src.exists():
-                Path(out_path).write_bytes(src.read_bytes())
         else:
             return False
         return True
