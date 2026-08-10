@@ -46,3 +46,9 @@ def api_admin_delete_outfit(date: str, admin: str = Depends(require_admin)):
     if not store.delete_outfit(date):
         raise HTTPException(status_code=404, detail="搭配记录不存在")
     return {"ok": True}
+
+
+@router.get("/users")
+def api_admin_users(page: int = 1, size: int = 20, keyword: str = "", admin: str = Depends(require_admin)):
+    """后台：分页查询用户列表。"""
+    return store.list_all_users(page=page, size=size, keyword=keyword)

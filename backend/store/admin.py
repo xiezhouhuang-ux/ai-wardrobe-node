@@ -126,6 +126,49 @@ def _row_to_outfit(row: dict) -> dict:
     }
 
 
+def list_all_users(page: int = 1, size: int = 20, keyword: str = "") -> dict:
+    """后台：分页查询微信授权用户，支持按昵称/openid 关键字搜索。"""
+    page = max(1, int(page))
+    size = min(100, max(1, int(size)))
+    offset = (page - 1) * size
+    with db.get_conn() as conn:
+        with conn.cursor() as cur:
+            if keyword:
+                like = f"%{keyword}%"
+                cur.execute(
+                    "SELECT * FROM users WHERE nickname LIKE %s OR openid LIKE %s "
+                    "ORDER BY created_at DESC LIMIT %s OFFSET %s",
+                    (like, like, size, offset),
+                )
+                rows = cur.fetchall()
+                cur.execute(
+                    "SELECT COUNT(*) AS c FROM users WHERE nickname LIKE %s OR openid LIKE %s",
+                    (like, like),
+                )
+            else:
+                cur.execute("SELECT * FROM users ORDER BY created_at DESC LIMIT %s OFFSET %s", (size, offset))
+                rows = cur.fetchall()
+                cur.execute("SELECT COUNT(*) AS c FROM users")
+            row = cur.fetchone() or {"c": 0}
+            total = row.get("c") or 0
+    return {
+        "list": [_row_to_user(r) for r in rows],
+        "total": total,
+        "page": page,
+        "size": size,
+    }
+
+
+def _row_to_user(row: dict) -> dict:
+    return {
+        "openid": row.get("openid") or "",
+        "nickname": row.get("nickname") or "",
+        "avatar": row.get("avatar") or "",
+        "createdAt": int(row.get("created_at", 0) or 0),
+        "updatedAt": int(row.get("updated_at", 0) or 0),
+    }
+
+
 def list_all_outfits(page: int = 1, size: int = 20) -> dict:
     """后台：跨用户分页查询搭配/日历记录。"""
     page = max(1, int(page))

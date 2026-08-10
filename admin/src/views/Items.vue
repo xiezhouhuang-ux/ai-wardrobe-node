@@ -7,6 +7,9 @@
     </div>
 
     <div class="table-card">
+      <div v-if="loading" class="loading-mask">
+        <span class="spinner"></span> 加载中…
+      </div>
       <table class="table">
         <thead>
           <tr>
@@ -22,7 +25,7 @@
         </thead>
         <tbody>
           <tr v-for="it in list" :key="it.id">
-            <td><img class="thumb" :src="fix(it.imageUrl)" /></td>
+            <td><img class="thumb" :src="fix(it.imageUrl)" @click="preview(it)" style="cursor: pointer" /></td>
             <td>{{ it.name || '-' }}</td>
             <td>{{ it.category || '-' }}</td>
             <td>{{ it.color || '-' }}</td>
@@ -45,6 +48,11 @@
       <span class="page-info">{{ page }} / {{ pages }}</span>
       <button class="page-btn" :disabled="page >= pages" @click="go(page + 1)">下一页</button>
     </div>
+
+    <div v-if="previewUrl" class="lightbox" @click="closePreview">
+      <img class="lightbox-img" :src="previewUrl" @click.stop />
+      <button class="lightbox-close" @click="closePreview">×</button>
+    </div>
   </div>
 </template>
 
@@ -58,13 +66,28 @@ const page = ref(1)
 const size = ref(20)
 const total = ref(0)
 const keyword = ref('')
+const loading = ref(false)
+const previewUrl = ref('')
 
 const pages = computed(() => Math.max(1, Math.ceil(total.value / size.value)))
 
 async function load() {
-  const res = await adminApi.items(page.value, size.value, keyword.value)
-  list.value = res.list || []
-  total.value = res.total || 0
+  loading.value = true
+  try {
+    const res = await adminApi.items(page.value, size.value, keyword.value)
+    list.value = res.list || []
+    total.value = res.total || 0
+  } finally {
+    loading.value = false
+  }
+}
+
+function preview(it) {
+  previewUrl.value = fix(it.imageUrl)
+}
+
+function closePreview() {
+  previewUrl.value = ''
 }
 
 function go(p) {

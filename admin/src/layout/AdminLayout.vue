@@ -15,6 +15,9 @@
         <router-link to="/outfits" class="menu-item">
           <span class="ico">▥</span> 搭配 / 日历
         </router-link>
+        <router-link to="/users" class="menu-item">
+          <span class="ico">☺</span> 用户管理
+        </router-link>
       </nav>
     </aside>
     <section class="main">

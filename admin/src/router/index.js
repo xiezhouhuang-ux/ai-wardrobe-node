@@ -11,6 +11,7 @@ const routes = [
       { path: 'items', name: 'items', component: () => import('../views/Items.vue'), meta: { title: '单品管理' } },
       { path: 'tryon', name: 'tryon', component: () => import('../views/Tryon.vue'), meta: { title: '试穿记录' } },
       { path: 'outfits', name: 'outfits', component: () => import('../views/Outfits.vue'), meta: { title: '搭配/日历' } },
+      { path: 'users', name: 'users', component: () => import('../views/Users.vue'), meta: { title: '用户管理' } },
     ],
   },
   { path: '/:pathMatch(.*)*', redirect: '/dashboard' },

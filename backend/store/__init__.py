@@ -74,6 +74,7 @@ get_admin_stats = _admin.get_admin_stats
 list_all_items = _admin.list_all_items
 list_all_tryon = _admin.list_all_tryon
 list_all_outfits = _admin.list_all_outfits
+list_all_users = _admin.list_all_users
 
 
 # 兼容旧调用：确保 PATHS 引用不报错（部分模块可能仍 import）

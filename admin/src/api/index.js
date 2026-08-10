@@ -30,10 +30,11 @@ http.interceptors.response.use(
   }
 )
 
-// 接口路径统一带 /wardrobe-admin 前缀（对外暴露的路径）：
-// - dev 环境：vite.config.js 将 /wardrobe-admin 代理到后端 http://localhost:3000，并去掉前缀，
-//   后端实际收到 /admin/*
-// - 生产环境：配置 VITE_API_BASE（如 https://域名）后直接拼接，由线上 nginx 将 /wardrobe-admin 反代到后端
+// 接口路径统一以 /admin 开头，不含 /wardrobe-admin 前缀：
+// - dev 环境（未配置 VITE_API_BASE）：由 vite.config.js 代理 /admin 时自动补全 /wardrobe-admin 前缀，
+//   实际转发到 http://localhost:3000/wardrobe-admin/admin/*
+// - 生产环境（配置 VITE_API_BASE）：VITE_API_BASE 已包含完整前缀（如 https://域名/wardrobe-admin），
+//   前端直接以 baseURL 拼接，由线上 nginx 反代
 export const adminApi = {
   login: (username, password) =>
     http.post('/admin/login', { username, password }),
@@ -47,6 +48,8 @@ export const adminApi = {
   outfits: (page = 1, size = 20) =>
     http.get('/admin/outfits', { params: { page, size } }),
   deleteOutfit: (date) => http.delete(`/admin/outfits/${date}`),
+  users: (page = 1, size = 20, keyword = '') =>
+    http.get('/admin/users', { params: { page, size, keyword } }),
 }
 
 export default http
