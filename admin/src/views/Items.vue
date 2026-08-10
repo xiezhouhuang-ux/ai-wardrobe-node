@@ -33,6 +33,7 @@
             <td class="mono">{{ it.openid }}</td>
             <td>{{ fmtTime(it.createdAt) }}</td>
             <td>
+              <button class="link" :disabled="!it.sourcePhoto" @click="previewSource(it)">查看原图</button>
               <button class="link danger" @click="remove(it)">删除</button>
             </td>
           </tr>
@@ -84,6 +85,11 @@ async function load() {
 
 function preview(it) {
   previewUrl.value = fix(it.imageUrl)
+}
+
+function previewSource(it) {
+  if (!it.sourcePhoto) return
+  previewUrl.value = fix(it.sourcePhoto)
 }
 
 function closePreview() {

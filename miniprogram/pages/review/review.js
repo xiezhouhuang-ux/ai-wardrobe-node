@@ -81,7 +81,6 @@ Page({
         out.imageUrl = it.imageUrl || it.previewUrl
         delete out._on
         delete out.catIdx
-        delete out.season
         delete out.previewUrl
         return out
       })

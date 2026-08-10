@@ -43,7 +43,7 @@ def normalize_to_png(image_bytes: bytes) -> bytes:
         return image_bytes
 
 
-def segment_with_qwen_image(image_bytes: bytes, meta: dict) -> str:
+def segment_with_qwen_image(image_bytes: bytes, meta: dict | None = None) -> str:
     """调用 DashScope 多模态（Qwen 图像编辑）接口，把 meta 描述的单品从原图中抠出。
 
     仅返回 Qwen 返回的 OSS 临时图片地址（供前端预览），不在本阶段落盘。
@@ -52,6 +52,7 @@ def segment_with_qwen_image(image_bytes: bytes, meta: dict) -> str:
     if not API_KEY:
         raise RuntimeError("缺少 QWEN_API_KEY，无法调用 DashScope 多模态接口")
 
+    meta = meta or {}
     prompt = build_segment_prompt(meta)
     img_size = len(image_bytes)
     logger.info("DashScope 分割请求: 图片 %.1f KB, 单品=%s/%s, 提示词=%s",
@@ -170,6 +171,7 @@ def extract_item(src_path: str, meta: dict) -> dict:
                 "imagePath": "",
                 "transparent": False,
                 "segmentMethod": "dashscope",
+                "sourcePhoto": src_path,
             }
         except Exception as e:
             logger.warning("DashScope 分割失败：%s", e)

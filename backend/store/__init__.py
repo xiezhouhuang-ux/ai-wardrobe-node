@@ -44,6 +44,7 @@ normalize_item_for_api = _normalize.normalize_item_for_api
 # 衣橱单品
 get_items = _items.get_items
 get_item = _items.get_item
+get_items_by_ids = _items.get_items_by_ids
 add_items = _items.add_items
 delete_item = _items.delete_item
 get_stats = _items.get_stats

@@ -9,6 +9,7 @@ import io
 import logging
 import time
 from pathlib import Path
+from typing import Any
 
 import requests
 from PIL import Image
@@ -105,10 +106,7 @@ def virtual_tryon(
 
     valid_items = []
     for it in item_images:
-        img_path = it.get("imageUrl", "")
-        if img_path.startswith("/") and not img_path.startswith("//") and not Path(img_path).is_absolute():
-            from config import ROOT
-            img_path = str(Path(ROOT) / img_path.lstrip("/"))
+        img_path: Any = it.get("imagePath", "")
         if not Path(img_path).exists():
             logger.warning("单品图片不存在，跳过: %s", img_path)
             continue

@@ -6,8 +6,9 @@
 import uuid
 from pathlib import Path
 
+import requests
+
 from config import ROOT, ITEMS, TRYON_RESULTS, UPLOADS, UPLOADS_PHOTOS
-from segment import normalize_to_png, download_to_local as _segment_download
 
 
 def new_id(prefix: str = "id") -> str:
@@ -28,31 +29,24 @@ def save_upload(upload) -> Path:
     dest.write_bytes(upload.file.read())
     return dest
 
-
-def resolve_image_path(item: dict) -> str:
-    """
-    从单品 dict 解析出可读取的本地图片路径。
-    优先 imagePath；其次 imageUrl 以 '/' 开头则相对 ROOT 拼接。
-    """
-    img_path = item.get("imagePath") or ""
-    if not img_path and (item.get("imageUrl") or "").startswith("/"):
-        img_path = str(Path(ROOT) / item["imageUrl"].lstrip("/"))
-    return img_path
-
-
 def download_image_to(url: str, out_path: str) -> bool:
     """
-    将 http(s) / 本地相对 URL 的图片下载并规范化为白底 PNG 落到 out_path。
+    将 http(s) / 本地相对 URL 的图片直接下载/拷贝到本地 out_path（不做 PNG 转换/白底规整）。
     成功返回 True，失败返回 False（仅记录日志，不抛异常）。
     """
     try:
         if url.startswith("http://") or url.startswith("https://"):
-            # download_to_local 内部已自行做 PNG 规范化，这里只传 url 与落盘路径
-            _segment_download(url, out_path)
+            resp = requests.get(
+                url,
+                headers={"User-Agent": "Mozilla/5.0 (compatible; AI-Wardrobe/1.0)"},
+                timeout=120,
+            )
+            resp.raise_for_status()
+            Path(out_path).write_bytes(resp.content)
         elif url.startswith("/uploads/items/"):
             src = Path(ROOT) / url.lstrip("/")
             if src.exists():
-                Path(out_path).write_bytes(normalize_to_png(src.read_bytes()))
+                Path(out_path).write_bytes(src.read_bytes())
         else:
             return False
         return True

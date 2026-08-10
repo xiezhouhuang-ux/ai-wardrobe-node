@@ -10,6 +10,7 @@ def _row_to_item(row: dict) -> dict:
     """将数据库行转换为 API 规范 dict（JSON 字段解析）。"""
     item = {
         "id": row["id"],
+        "openid": row.get("openid") or "",
         "category": row.get("category") or "",
         "color": row.get("color") or "",
         "season": row.get("season") or "四季",
@@ -46,10 +47,32 @@ def get_item(item_id: str, openid: str = ""):
                 cur.execute("SELECT * FROM items WHERE id=%s AND openid=%s", (item_id, openid))
             else:
                 cur.execute("SELECT * FROM items WHERE id=%s", (item_id,))
-            row = cur.fetchone()
+        row = cur.fetchone()
     if not row:
         return None
     return _row_to_item(row)
+
+
+def get_items_by_ids(ids: list[str], openid: str = "") -> list:
+    """按 id 列表批量查询单品（IN 查询），避免全表拉取后再过滤。"""
+    ids = [i for i in (ids or []) if i]
+    if not ids:
+        return []
+    placeholders = ", ".join(["%s"] * len(ids))
+    with db.get_conn() as conn:
+        with conn.cursor() as cur:
+            if openid:
+                cur.execute(
+                    f"SELECT * FROM items WHERE id IN ({placeholders}) AND openid=%s",
+                    (*ids, openid),
+                )
+            else:
+                cur.execute(
+                    f"SELECT * FROM items WHERE id IN ({placeholders})",
+                    tuple(ids),
+                )
+            rows = cur.fetchall()
+    return [_row_to_item(r) for r in rows]
 
 
 def add_items(items: list, openid: str = "") -> None:

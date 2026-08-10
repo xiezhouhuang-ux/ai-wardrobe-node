@@ -1,6 +1,9 @@
 """试穿记录表 tryon_records 的读写。"""
 import json
 import os
+import time
+
+from core.files import new_id
 
 
 def _row_to_tryon(row: dict) -> dict:
@@ -35,6 +38,9 @@ def get_tryon_records(openid: str = "") -> list:
 def save_tryon_record(record: dict) -> dict:
     from store import db
     openid = record.get("openid", "")
+    rid = record.get("id") or new_id("tr")
+    created_at = int(record.get("createdAt", 0) or 0) or int(time.time())
+    item_ids = record.get("itemIds") or [it.get("id") for it in (record.get("items") or [])]
     with db.get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -44,17 +50,25 @@ def save_tryon_record(record: dict) -> dict:
                 "items_json=VALUES(items_json), result_url=VALUES(result_url), "
                 "image_path=VALUES(image_path), created_at=VALUES(created_at)",
                 (
-                    record.get("id"),
+                    rid,
                     openid,
-                    json.dumps(record.get("itemIds", []), ensure_ascii=False),
+                    json.dumps(item_ids, ensure_ascii=False),
                     json.dumps(record.get("items", []), ensure_ascii=False),
                     record.get("resultUrl", ""),
                     record.get("imagePath", ""),
-                    int(record.get("createdAt", 0) or 0),
+                    created_at,
                 ),
             )
         conn.commit()
-    return record
+    return {
+        "id": rid,
+        "openid": openid,
+        "itemIds": item_ids,
+        "items": record.get("items", []),
+        "resultUrl": record.get("resultUrl", ""),
+        "imagePath": record.get("imagePath", ""),
+        "createdAt": created_at,
+    }
 
 
 def delete_tryon_record(record_id: str, openid: str = "") -> bool:

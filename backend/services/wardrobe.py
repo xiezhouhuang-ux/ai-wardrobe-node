@@ -9,7 +9,6 @@ from pathlib import Path
 from config import ITEMS
 import store
 from qwen import detect_clothing
-from segment import segment_with_qwen_image, normalize_to_png
 from core.files import new_id, save_upload, download_image_to
 from services import tryon_svc
 
@@ -41,16 +40,30 @@ def process_photo(openid: str, files) -> dict:
 
 
 def analyze(openid: str, files) -> dict:
-    """拍照/上传服装照，返回分割后的透明背景 PNG（预览）。"""
+    """拍照/上传服装照，仅用 VL 视觉模型分析候选单品（不分割、不入库）。
+
+    返回 {photoUrl, candidates}，candidates 为识别出的候选单品，
+    待用户在 /api/segment 阶段对确认的单品做分割预览。
+    """
     if not files:
         raise ValueError("请上传服装照")
     upload = files[0]
     src = save_upload(upload)
-    png_bytes = segment_with_qwen_image(src.read_bytes())
-    out_name = new_id("seg") + ".png"
-    out_path = str(Path(ITEMS) / out_name)
-    Path(out_path).write_bytes(normalize_to_png(png_bytes))
-    return {"items": [{"id": new_id("it"), "imageUrl": f"/uploads/items/{out_name}", "imagePath": out_path}]}
+    photo_url = f"/uploads/photos/{src.name}"
+    try:
+        items = detect_clothing(str(src))
+    except Exception as e:  # noqa: BLE001
+        logger.exception("识别失败：%s", e)
+        items = []
+    candidates = []
+    for idx, it in enumerate(items):
+        it["id"] = new_id("it")
+        it["imageUrl"] = photo_url
+        it["imagePath"] = str(src)
+        candidates.append(it)
+        if idx >= 9:
+            break
+    return {"photoUrl": photo_url, "candidates": candidates}
 
 
 def commit(openid: str, items: list) -> dict:
