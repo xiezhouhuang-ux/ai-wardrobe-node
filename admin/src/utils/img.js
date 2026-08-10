@@ -9,7 +9,11 @@ export function fix(url) {
 
 export function fmtTime(ts) {
   if (!ts) return '-'
-  const d = new Date(Number(ts))
+  let ms = Number(ts)
+  if (isNaN(ms)) return String(ts)
+  // 兼容秒级（约 1.7e9）与毫秒级（约 1.7e12）时间戳：秒级自动补成毫秒
+  if (ms < 1e12) ms *= 1000
+  const d = new Date(ms)
   if (isNaN(d.getTime())) return String(ts)
   const p = (n) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
