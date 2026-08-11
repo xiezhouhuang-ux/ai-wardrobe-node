@@ -6,9 +6,9 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': 'http://localhost:3000',
+      '/api': 'https://wardrobe.maidane.com',
       // 静态资源统一收敛到 /uploads 下（photos / items / tryon_results 子目录）
-      '/uploads': 'http://localhost:3000',
+      '/uploads': 'https://wardrobe.maidane.com',
     },
   },
 })
