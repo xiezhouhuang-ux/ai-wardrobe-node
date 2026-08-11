@@ -30,7 +30,8 @@ Page({
               const userInfo = {
                 nickname: u.nickname || '',
                 avatar: fixImage(u.avatar || ''),
-                createdAt: u.createdAt || 0
+                createdAt: u.createdAt || 0,
+                openid: u.openid || ''
               }
               app.saveLogin(token, userInfo)
             }).catch(() => {})

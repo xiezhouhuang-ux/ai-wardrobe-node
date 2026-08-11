@@ -19,6 +19,7 @@ Page({
   },
 
   async load() {
+    const app = getApp() || {}
     try {
       const it = await api.getItem(this.itemId)
       it.image = this.fixImage(it.imageUrl || it.image)
@@ -26,7 +27,24 @@ Page({
       const dotColor = categoryColors[it.category] || '#c96b4a'
       const seasonText = (it.season || '').replace(/[、,\s]+/g, ' · ')
       const hashList = (it.season || '').split(/[、,\s]+/).filter(Boolean)
-      this.setData({ item: it, dotColor, seasonText, hashList })
+      // 判断是否本人单品：拉取当前登录用户 openid 与 item.openid 比对
+      let isOwner = false
+      const cachedOpenid = (app && app.getOpenid && app.getOpenid()) || ''
+      if (cachedOpenid) {
+        // 登录时已缓存 openid，无需再调 /api/user/profile
+        isOwner = !!(it.openid && it.openid === cachedOpenid)
+      } else {
+        // 兼容旧缓存/未登录场景：回退拉取一次并写回全局
+        try {
+          const profile = await api.userProfile()
+          const myOpenid = (profile && profile.user && profile.user.openid) || ''
+          if (myOpenid && app && app.saveLogin) app.saveLogin(app.globalData.token, { openid: myOpenid })
+          isOwner = !!(it.openid && myOpenid && it.openid === myOpenid)
+        } catch (e) {
+          isOwner = false
+        }
+      }
+      this.setData({ item: it, dotColor, seasonText, hashList, isOwner })
     } catch (e) {
       wx.showToast({ title: e.message || '加载失败', icon: 'none' })
     }
@@ -44,11 +62,21 @@ Page({
     })
   },
 
-  // 用这件单品生成搭配：记录待选中单品，跳转到 AI 搭配页（tabBar，无法传参，借助全局）
+  // 用这件单品生成搭配：携带目标用户 openid 与预选单品，跳转衣橱试穿页
   onTryOn() {
-    const app = getApp() || {}
-    if (app.globalData) app.globalData.pendingTryonItemId = this.itemId
-    wx.switchTab({ url: '/pages/tryon/tryon' })
+    const it = this.data.item || {}
+    const openid = it.openid || ''
+    if (!openid) {
+      wx.showToast({ title: '缺少所属用户', icon: 'none' })
+      return
+    }
+    const params = [
+      `openid=${encodeURIComponent(openid)}`,
+      `nickname=${encodeURIComponent(it.nickname || '')}`,
+      `avatar=${encodeURIComponent(it.avatar || '')}`,
+      `initId=${encodeURIComponent(this.itemId)}`
+    ].join('&')
+    wx.navigateTo({ url: `/pages/tryon-wardrobe/tryon-wardrobe?${params}` })
   },
 
   onDelete() {

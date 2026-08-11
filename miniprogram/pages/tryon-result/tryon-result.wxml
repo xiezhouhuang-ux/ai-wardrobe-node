@@ -11,7 +11,7 @@
   <view class="outfit-section" wx:if="{{outfitItems.length}}">
     <view class="outfit-title">搭配单品</view>
     <view class="outfit-list">
-      <view class="outfit-chip" wx:for="{{outfitItems}}" wx:key="id">
+      <view class="outfit-chip" wx:for="{{outfitItems}}" wx:key="id" data-id="{{item.id}}" bindtap="onTapItem" hover-class="outfit-chip-hover">
         <image class="outfit-chip-img" src="{{item.image}}" mode="aspectFill"></image>
         <text class="outfit-chip-name">{{item.category || '上装'}}</text>
         <text class="outfit-chip-color" wx:if="{{item.color}}">{{item.color}}</text>
@@ -19,11 +19,15 @@
     </view>
   </view>
 
-  <view class="action-row">
+  <view class="action-row" wx:if="{{!readonly}}">
     <button class="btn btn-secondary flex-btn" bindtap="onSaveToAlbum">保存到相册</button>
     <button class="btn btn-primary flex-btn" bindtap="onConfirmSave" disabled="{{saving || saved}}">
       {{saved ? '已保存' : (saving ? '保存中…' : '确认保存')}}
     </button>
+  </view>
+
+  <view class="action-row" wx:if="{{fromRecords}}">
+    <button class="btn btn-ghost flex-btn" bindtap="onDeleteRecord">删除记录</button>
   </view>
 
   <view class="safe-bottom"></view>

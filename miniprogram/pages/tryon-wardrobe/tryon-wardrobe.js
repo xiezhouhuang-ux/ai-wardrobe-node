@@ -23,13 +23,14 @@ Page({
     const openid = decodeURIComponent(q.openid || '')
     const nickname = q.nickname ? decodeURIComponent(q.nickname) : ''
     const avatar = q.avatar ? decodeURIComponent(q.avatar) : ''
+    const initId = q.initId ? decodeURIComponent(q.initId) : ''
     const user = {
       openid,
       nickname,
       avatar,
       initial: this.makeInitial(nickname || openid || '?')
     }
-    this.setData({ currentUser: user })
+    this.setData({ currentUser: user, initId })
     this.loadWardrobe(openid)
   },
 
@@ -63,6 +64,16 @@ Page({
       }
       const groupList = CATEGORIES.map(cat => ({ cat, items: map[cat] }))
       this.setData({ wardrobe: list, groupList })
+      // 从详情页携带 initId 跳转时，预选该单品
+      const initId = this.data.initId
+      if (initId) {
+        const initItem = list.find(i => i.id === initId)
+        if (initItem && initItem.category) {
+          const selected = Object.assign({}, this.data.selected)
+          selected[initItem.category] = initId
+          this.updateSelectedItems(selected)
+        }
+      }
       // 目标用户全身照（404 视为未上传）
       const url = photo ? this.fixImage(photo.url || photo.path || photo) : ''
       this.setData({ userPhoto: url })
@@ -122,5 +133,12 @@ Page({
 
   onReset() {
     this.setData({ selected: {}, selectedItems: [], error: '' })
+  },
+
+  // 预览底图（系统级，可缩放/保存）
+  onPreviewPhoto() {
+    const url = this.data.userPhoto
+    if (!url) return
+    wx.previewImage({ current: url, urls: [url] })
   }
 })

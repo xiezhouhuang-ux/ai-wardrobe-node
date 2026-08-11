@@ -167,7 +167,8 @@ Page({
         app.saveLogin(this.data.token, {
           nickname: user.nickname || '',
           avatar: fixImage(user.avatar || ''),
-          createdAt: user.createdAt || this.data.createdAt
+          createdAt: user.createdAt || this.data.createdAt,
+          openid: user.openid || ''
         })
       }
       this.setData({

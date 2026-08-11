@@ -10,15 +10,22 @@ Page({
     target: '',         // 目标用户 openid（管理视角试穿）
     outfitItems: [],    // 搭配单品详情
     saving: false,
-    saved: false
+    saved: false,
+    readonly: false,    // 从记录页进入：隐藏保存按钮
+    fromRecords: false, // 从记录页进入：显示删除按钮
+    recordId: ''        // 记录 id，用于删除
   },
   onLoad(q) {
     const saveUrl = decodeURIComponent(q.resultUrl || '')
+    const fromRecords = q.from === 'records'
     this.setData({
       resultUrl: fixImage(saveUrl),
       saveUrl,
       ids: q.ids ? JSON.parse(decodeURIComponent(q.ids)) : [],
-      target: q.target ? decodeURIComponent(q.target) : ''
+      target: q.target ? decodeURIComponent(q.target) : '',
+      readonly: fromRecords,
+      fromRecords,
+      recordId: q.recordId ? decodeURIComponent(q.recordId) : ''
     })
     this.loadOutfitItems()
   },
@@ -84,5 +91,33 @@ Page({
     const url = this.data.resultUrl
     if (!url) return
     wx.previewImage({ current: url, urls: [url] })
+  },
+
+  // 点击搭配单品：跳转单品详情页
+  onTapItem(e) {
+    const { id } = e.currentTarget.dataset
+    if (!id) return
+    wx.navigateTo({ url: `/pages/detail/detail?id=${encodeURIComponent(id)}` })
+  },
+
+  // 从记录页进入时，删除该试穿记录
+  onDeleteRecord() {
+    const id = this.data.recordId
+    if (!id) return
+    wx.showModal({
+      title: '确认删除',
+      content: '删除后不可恢复',
+      confirmColor: '#c96b4a',
+      success: async (res) => {
+        if (!res.confirm) return
+        try {
+          await api.deleteTryOnRecord(id)
+          wx.showToast({ title: '已删除', icon: 'success' })
+          setTimeout(() => wx.navigateBack(), 500)
+        } catch (e) {
+          wx.showToast({ title: '删除失败', icon: 'none' })
+        }
+      }
+    })
   }
 })

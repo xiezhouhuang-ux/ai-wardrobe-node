@@ -49,7 +49,7 @@
     </view>
     <view class="action-arrow">›</view>
   </view>
-   <view class="action-card" wx:if="{{item.sourcePhoto}}" bindtap="onPreviewSource">
+   <view class="action-card" wx:if="{{isOwner && item.sourcePhoto}}" bindtap="onPreviewSource">
     <view class="action-icon"> 
       <image class="source-thumb" src="{{item.sourcePhoto}}" mode="aspectFill"></image>
     </view>
@@ -61,7 +61,7 @@
   </view>
 
 
-  <view class="footer-row">
+  <view class="footer-row" wx:if="{{isOwner}}">
     <button class="btn btn-secondary footer-btn" bindtap="onBack">返回衣橱</button>
     <button class="btn btn-ghost footer-btn" bindtap="onDelete">删除卡片</button>
   </view>

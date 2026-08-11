@@ -40,7 +40,7 @@ def api_list_users(page: int = 1, size: int = 200, keyword: str = "", openid: st
 @router.get("/api/items/{item_id}")
 def api_get_item(item_id: str, openid: str = Depends(require_openid)):
     """小程序端：获取单个单品详情。"""
-    item = store.get_item(item_id, openid)
+    item = store.get_item(item_id)
     if not item:
         raise HTTPException(status_code=404, detail="单品不存在")
     return item

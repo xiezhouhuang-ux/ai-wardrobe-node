@@ -68,11 +68,14 @@
   gap: 8rpx;
 }
 .record-tag {
+  display: flex;
+  align-items: center;
   font-size: 20rpx;
   background: var(--color-surface-2, #efe5d7);
   color: var(--color-text, #3a2a1f);
   padding: 4rpx 14rpx;
   border-radius: 8rpx;
+  line-height: 1.4;
 }
 .record-del {
   position: absolute;

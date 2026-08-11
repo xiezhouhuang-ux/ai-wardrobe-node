@@ -2,14 +2,6 @@
 <view class="tryon-page page-with-nav">
   <nav-bar title="衣橱试穿" back="{{true}}"></nav-bar>
 
-  <view class="user-bar">
-    <image wx:if="{{currentUser.avatar}}" class="bar-avatar" src="{{currentUser.avatar}}" mode="aspectFill"></image>
-    <view wx:else class="bar-avatar placeholder">{{currentUser.initial}}</view>
-    <view class="bar-info">
-      <view class="bar-name">{{currentUser.nickname || '未命名用户'}}</view>
-    </view>
-  </view>
-
   <view wx:if="{{loadingWardrobe}}" class="empty">加载衣橱中…</view>
 
   <block wx:else>
@@ -20,8 +12,8 @@
 
     <!-- 全身照已就绪 -->
     <view wx:else class="photo-row">
-      <image class="user-photo" src="{{userPhoto}}" mode="aspectFill"></image>
-      <text class="badge">✓ 底图已就绪</text>
+      <image class="user-photo" src="{{userPhoto}}" mode="aspectFill" bindtap="onPreviewPhoto"></image>
+      <text class="photo-note">✓ 底图已就绪</text>
     </view>
 
     <!-- 按分类选择单品 -->
