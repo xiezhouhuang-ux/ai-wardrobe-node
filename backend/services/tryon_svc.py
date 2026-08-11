@@ -69,7 +69,7 @@ def save_tryon(openid: str, item_ids: list, result_url: str) -> dict:
     snapshots, missing = build_item_snapshots(openid, item_ids)
     if missing:
         raise ValueError(f"单品不存在: {', '.join(missing)}")
-
+    out_path = ""
     # 将试穿结果图（result_url，OSS 临时地址）下载到本地 tryon_results/
     if result_url and result_url.startswith("http"):
         out_name = new_id("tr") + ".png"
@@ -77,10 +77,13 @@ def save_tryon(openid: str, item_ids: list, result_url: str) -> dict:
         if download_image_to(result_url, out_path):
             result_url = f"/uploads/tryon_results/{out_name}"
 
+        
+
     record = store.save_tryon_record({
         "openid": openid,
         "itemIds": item_ids,
         "items": snapshots,
+        "imagePath": out_path,
         "resultUrl": result_url,
     })
     return record

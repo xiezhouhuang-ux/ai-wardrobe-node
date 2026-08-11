@@ -39,7 +39,7 @@ def save_tryon_record(record: dict) -> dict:
     from store import db
     openid = record.get("openid", "")
     rid = record.get("id") or new_id("tr")
-    created_at = int(record.get("createdAt", 0) or 0) or int(time.time())
+    created_at = int(time.time() * 1000)
     item_ids = record.get("itemIds") or [it.get("id") for it in (record.get("items") or [])]
     with db.get_conn() as conn:
         with conn.cursor() as cur:

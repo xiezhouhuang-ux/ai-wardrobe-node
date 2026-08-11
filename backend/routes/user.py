@@ -1,4 +1,6 @@
 """用户接口：上传正面照、上传头像、个人资料。"""
+import time
+
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 
@@ -21,16 +23,22 @@ def api_get_user_photo(openid: str = Depends(require_openid)):
 
 
 @router.post("/api/user/photo")
-async def api_upload_user_photo(request: Request, openid: str = Depends(require_openid)):
-    form = await request.form()
-    photos = form.getlist("photos") if hasattr(form, "getlist") else (form.get("photos") or [])
-    if not photos:
-        raise HTTPException(status_code=400, detail="请上传正面照")
-    src = save_upload(photos[0])
+async def api_upload_user_photo(photo: UploadFile = File(..., description="全身正面照"), openid: str = Depends(require_openid)):
+    src = save_upload(photo)
+    try:
+        security.check_image(str(src))
+    except PermissionError as pe:
+        raise HTTPException(status_code=403, detail=f"内容未通过安全检测: {pe}")
     # 内容安全检测：上传的全身正面照
-    security.check_image(str(src))
     url = f"/uploads/photos/{src.name}"
-    store.save_user_photo(openid, url)
+    info = {
+        "openid": openid,
+        "url": url,
+        "path": str(src),
+        "createdAt": int(time.time() * 1000),
+    }
+    store.save_user_photo(info)
+    
     return {"ok": True, "url": url}
 
 

@@ -78,7 +78,7 @@ def commit(openid: str, items: list) -> dict:
             out_name = new_id("it") + ".png"
             out_path = str(Path(ITEMS) / out_name)
             if download_image_to(img_url, out_path):
-                it["imageUrl"] = f"{ITEMS}/{out_name}"
+                it["imageUrl"] = f"/uploads/items/{out_name}"
                 it["imagePath"] = out_path
     store.add_items(items, openid)
     return {"ok": True, "count": len(items), "items": items}
