@@ -15,9 +15,26 @@ router = APIRouter(tags=["wardrobe"])
 
 
 @router.get("/api/items")
-def api_list_items(openid: str = Depends(require_openid)):
-    """小程序端：列出当前用户的衣橱单品（复用旧版格式：直接返回数组）。"""
-    return store.get_items(openid)
+def api_list_items(openid: str = Depends(require_openid), target: str = ""):
+    """列出衣橱单品；不传 target 时返回当前用户，传 target 时返回指定用户（管理视角）。"""
+    q = target or openid
+    return store.get_items(q)
+
+
+@router.get("/api/users")
+def api_list_users(page: int = 1, size: int = 200, keyword: str = "", openid: str = Depends(require_openid)):
+    """列出所有用户（管理视角，供前端切换用户衣橱试穿）。
+
+    排除当前登录用户本人（本人由前端单独置顶展示，信息取自登录态）。
+    返回额外携带 self 字段（含 openid，供前端跳转衣橱试穿时使用）。
+    """
+    # 在 SQL 层直接排除当前用户本人，无需循环过滤
+    result = store.list_all_users(page=page, size=size, keyword=keyword, exclude_openid=openid)
+    me = store.get_user(openid) or {"openid": openid, "nickname": "", "avatar": ""}
+    # selfOpenid 直接取自 JWT 解析出的 openid，必定可靠，供前端跳转衣橱试穿使用
+    result["self"] = me
+    result["selfOpenid"] = openid
+    return result
 
 
 @router.get("/api/items/{item_id}")
@@ -107,24 +124,28 @@ def api_commit(payload: dict = Body(default={}), openid: str = Depends(require_o
 class TryonPayload(BaseModel):
     itemIds: list = []
     imageUrl: str = ""
+    target: str = ""
 
 
 @router.post("/api/tryon")
 async def api_tryon(payload: TryonPayload, openid: str = Depends(require_openid)):
-    """直接试穿：底图取当前用户的全身照（按 openid 隔离），无需前端上传。"""
+    """直接试穿：底图取目标用户的全身照（target 缺省为当前用户），无需前端上传。"""
     item_ids = payload.itemIds or []
     if not item_ids:
         raise HTTPException(status_code=400, detail="缺少单品")
 
-    # 取用户全身照（按当前用户隔离）
-    photo = store.get_user_photo(openid)
+    # 管理视角下可指定被试穿用户；缺省为当前登录用户
+    target = (payload.target and str(payload.target).strip()) or openid
+
+    # 取用户全身照（按目标用户隔离）
+    photo = store.get_user_photo(target)
     if not photo or not photo.get("path"):
-        raise HTTPException(status_code=400, detail="请先在「我的」上传全身照后再试穿")
+        raise HTTPException(status_code=400, detail="该用户尚未上传全身照，无法试穿")
     photo_path = photo["path"]
     if not Path(photo_path).exists():
         raise HTTPException(status_code=400, detail="全身照文件不存在，请重新上传")
 
     try:
-        return wardrobe_svc.tryon(openid, item_ids, str(photo_path))
+        return wardrobe_svc.tryon(target, item_ids, str(photo_path))
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=str(e))

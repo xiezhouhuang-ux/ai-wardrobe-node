@@ -1,0 +1,78 @@
+<!--pages/tryon-wardrobe/tryon-wardrobe.wxml-->
+<view class="tryon-page page-with-nav">
+  <nav-bar title="衣橱试穿" back="{{true}}"></nav-bar>
+
+  <view class="user-bar">
+    <image wx:if="{{currentUser.avatar}}" class="bar-avatar" src="{{currentUser.avatar}}" mode="aspectFill"></image>
+    <view wx:else class="bar-avatar placeholder">{{currentUser.initial}}</view>
+    <view class="bar-info">
+      <view class="bar-name">{{currentUser.nickname || '未命名用户'}}</view>
+    </view>
+  </view>
+
+  <view wx:if="{{loadingWardrobe}}" class="empty">加载衣橱中…</view>
+
+  <block wx:else>
+    <!-- 未上传全身照提示 -->
+    <view wx:if="{{!userPhoto}}" class="banner">
+      <text class="banner-text">⚠️ 该用户尚未上传全身正面照，无法生成试穿效果</text>
+    </view>
+
+    <!-- 全身照已就绪 -->
+    <view wx:else class="photo-row">
+      <image class="user-photo" src="{{userPhoto}}" mode="aspectFill"></image>
+      <text class="badge">✓ 底图已就绪</text>
+    </view>
+
+    <!-- 按分类选择单品 -->
+    <view class="section">
+      <view class="section-head">
+        <text class="section-title">选择穿搭单品</text>
+        <text class="sel-count">已选 {{selectedItems.length}} / 4</text>
+      </view>
+
+      <view class="cat-block" wx:for="{{groupList}}" wx:key="cat" wx:for-item="g">
+        <view class="cat-head">{{g.cat}}</view>
+        <scroll-view wx:if="{{g.items.length}}" class="items-row" scroll-x enhanced enable-flex show-scrollbar="{{false}}">
+          <view
+            class="item-card {{selected[g.cat] === it.id ? 'active' : ''}}"
+            wx:for="{{g.items}}"
+            wx:key="id"
+            wx:for-item="it"
+            data-cat="{{g.cat}}"
+            data-id="{{it.id}}"
+            bindtap="onToggleSelect"
+          >
+            <image class="item-thumb" src="{{it.image}}" mode="aspectFill" lazy-load></image>
+            <view class="item-meta">
+              <text class="item-name">{{it.color || it.category}}</text>
+              <text class="item-check">{{selected[g.cat] === it.id ? '✓' : ''}}</text>
+            </view>
+          </view>
+        </scroll-view>
+        <view wx:else class="cat-empty">暂无{{g.cat}}单品</view>
+      </view>
+    </view>
+
+    <!-- 已选概览 + 操作 -->
+    <view wx:if="{{selectedItems.length}}" class="overview">
+      <view class="ov-title">已选单品</view>
+      <view class="ov-items">
+        <view class="ov-chip" wx:for="{{selectedItems}}" wx:key="id" wx:for-item="it">
+          <image class="ov-thumb" src="{{it.image}}" mode="aspectFill"></image>
+          <text class="ov-text">{{it.category}} · {{it.color}}</text>
+        </view>
+      </view>
+      <view class="ov-actions">
+        <button class="btn btn-primary ov-gen" bindtap="onGenerate" loading="{{generating}}" disabled="{{generating}}">
+          {{generating ? '正在生成…' : '生成试穿效果'}}
+        </button>
+        <button class="btn btn-outline ov-reset" bindtap="onReset">重新选择</button>
+      </view>
+    </view>
+  </block>
+
+  <view wx:if="{{error}}" class="error">⚠️ {{error}}</view>
+
+  <view class="safe-bottom"></view>
+</view>

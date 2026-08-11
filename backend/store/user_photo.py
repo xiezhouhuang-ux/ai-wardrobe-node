@@ -52,6 +52,12 @@ def get_user(openid: str) -> dict | None:
     }
 
 
+def _random_nickname() -> str:
+    """首次注册时生成一个随机昵称，例如「衣橱用户8247」。"""
+    prefixes = ["衣橱用户", "时尚星", "穿搭控", "潮人", "随心搭"]
+    return f"{random.choice(prefixes)}{random.randint(1000, 9999)}"
+
+
 def upsert_user(openid: str, nickname: str = "", avatar: str = "") -> dict:
     from store import db
     now = int(time.time())
@@ -68,10 +74,12 @@ def upsert_user(openid: str, nickname: str = "", avatar: str = "") -> dict:
                     (nick, av, now, openid),
                 )
             else:
+                # 首次注册：昵称为空则随机生成，避免「微信用户」千篇一律
+                nick = nickname or _random_nickname()
                 cur.execute(
                     "INSERT INTO users (openid, nickname, avatar, created_at, updated_at) "
                     "VALUES (%s, %s, %s, %s, %s)",
-                    (openid, nickname or "", avatar or "", now, now),
+                    (openid, nick, avatar or "", now, now),
                 )
         conn.commit()
     return get_user(openid)

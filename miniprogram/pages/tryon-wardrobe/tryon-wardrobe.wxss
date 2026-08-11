@@ -1,0 +1,275 @@
+/* pages/tryon-wardrobe/tryon-wardrobe.wxss —— 统一暖色设计系统 */
+.tryon-page {
+  min-height: 100vh;
+  background: var(--color-bg, #f5ede3);
+  padding: 0 32rpx 200rpx;
+  box-sizing: border-box;
+}
+
+.empty {
+  text-align: center;
+  color: var(--color-text-mute, #b9ad9c);
+  font-size: 28rpx;
+  padding: 120rpx 0;
+}
+
+/* ---------- 当前用户条 ---------- */
+.user-bar {
+  display: flex;
+  align-items: center;
+  background: var(--color-surface, #fffaf3);
+  border-radius: var(--radius-md, 24rpx);
+  padding: 20rpx 24rpx;
+  margin-bottom: 24rpx;
+  box-shadow: var(--shadow-card, 0 8rpx 24rpx rgba(58, 42, 31, 0.06));
+}
+
+.bar-avatar {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--color-surface-2, #efe5d7);
+}
+
+.bar-avatar.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-accent, #c96b4a);
+  font-size: 28rpx;
+  font-weight: 600;
+  background: var(--color-tag-bg, #f0e4d3);
+}
+
+.bar-info {
+  flex: 1;
+  margin-left: 20rpx;
+  overflow: hidden;
+}
+
+.bar-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--color-text, #3a2a1f);
+}
+
+.bar-openid {
+  font-size: 20rpx;
+  color: var(--color-text-mute, #b9ad9c);
+  margin-top: 4rpx;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- 底图 ---------- */
+.banner {
+  background: #fbeede;
+  border-radius: var(--radius-sm, 16rpx);
+  padding: 24rpx;
+  margin-bottom: 24rpx;
+}
+
+.banner-text {
+  font-size: 26rpx;
+  color: var(--color-accent-deep, #a85a3d);
+}
+
+.photo-row {
+  position: relative;
+  margin-bottom: 24rpx;
+}
+
+.user-photo {
+  width: 100%;
+  height: 520rpx;
+  border-radius: var(--radius-md, 24rpx);
+  background: var(--color-surface-2, #efe5d7);
+  display: block;
+}
+
+.badge {
+  position: absolute;
+  right: 20rpx;
+  bottom: 20rpx;
+  background: rgba(34, 197, 94, 0.9);
+  color: #fff;
+  font-size: 24rpx;
+  padding: 8rpx 18rpx;
+  border-radius: var(--radius-pill, 999rpx);
+}
+
+/* ---------- 分类选择 ---------- */
+.section {
+  background: var(--color-surface, #fffaf3);
+  border-radius: var(--radius-md, 24rpx);
+  padding: 24rpx;
+  margin-bottom: 24rpx;
+  box-shadow: var(--shadow-card, 0 8rpx 24rpx rgba(58, 42, 31, 0.06));
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--color-text, #3a2a1f);
+}
+
+.sel-count {
+  font-size: 24rpx;
+  color: var(--color-text-soft, #8b7a6a);
+}
+
+.cat-block {
+  margin-top: 20rpx;
+}
+
+.cat-head {
+  font-size: 26rpx;
+  color: var(--color-accent, #c96b4a);
+  font-weight: 600;
+  margin-bottom: 14rpx;
+}
+
+.items-row {
+  white-space: nowrap;
+  width: 100%;
+}
+
+.cat-empty {
+  font-size: 24rpx;
+  color: var(--color-text-mute, #b9ad9c);
+  padding: 20rpx 4rpx;
+}
+
+.item-card {
+  display: inline-flex;
+  flex-direction: column;
+  width: 180rpx;
+  margin-right: 18rpx;
+  background: var(--color-surface-2, #efe5d7);
+  border: 3rpx solid transparent;
+  border-radius: var(--radius-sm, 16rpx);
+  overflow: hidden;
+  vertical-align: top;
+}
+
+.item-card.active {
+  border-color: var(--color-accent, #c96b4a);
+  background: var(--color-tag-bg, #f0e4d3);
+}
+
+.item-thumb {
+  width: 100%;
+  height: 180rpx;
+  background: #d5c6b0;
+  display: block;
+}
+
+.item-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10rpx 12rpx;
+}
+
+.item-name {
+  font-size: 22rpx;
+  color: var(--color-text, #3a2a1f);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-check {
+  font-size: 24rpx;
+  color: var(--color-accent, #c96b4a);
+  font-weight: 700;
+}
+
+/* ---------- 已选概览 ---------- */
+.overview {
+  background: var(--color-surface, #fffaf3);
+  border-radius: var(--radius-md, 24rpx);
+  padding: 24rpx;
+  margin-bottom: 24rpx;
+  box-shadow: var(--shadow-card, 0 8rpx 24rpx rgba(58, 42, 31, 0.06));
+}
+
+.ov-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--color-text, #3a2a1f);
+  margin-bottom: 16rpx;
+}
+
+.ov-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.ov-chip {
+  display: flex;
+  align-items: center;
+  background: var(--color-surface-2, #efe5d7);
+  border-radius: 12rpx;
+  padding: 8rpx 14rpx 8rpx 8rpx;
+}
+
+.ov-thumb {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 8rpx;
+  background: #d5c6b0;
+  margin-right: 12rpx;
+}
+
+.ov-text {
+  font-size: 22rpx;
+  color: var(--color-text, #3a2a1f);
+}
+
+.ov-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 24rpx;
+}
+
+/* 复用全局 .btn 体系 */
+.btn {
+  flex: 1;
+  border-radius: var(--radius-pill, 999rpx);
+  font-size: 28rpx;
+  padding: 18rpx 0;
+  line-height: 1.4;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-accent, #c96b4a), var(--color-accent-soft, #e6a48a));
+  color: #fffaf3;
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--color-accent, #c96b4a);
+  border: 2rpx solid var(--color-accent, #c96b4a);
+}
+
+.error {
+  color: #e5484d;
+  font-size: 26rpx;
+  text-align: center;
+  margin: 16rpx 0;
+}
+
+.safe-bottom {
+  height: 40rpx;
+}

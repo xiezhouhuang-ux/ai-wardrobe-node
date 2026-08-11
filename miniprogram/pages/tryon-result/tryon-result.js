@@ -7,6 +7,7 @@ Page({
     resultUrl: '',      // 显示用（经过 fixImage 处理）
     saveUrl: '',        // 保存用（本地路径）
     ids: [],
+    target: '',         // 目标用户 openid（管理视角试穿）
     outfitItems: [],    // 搭配单品详情
     saving: false,
     saved: false
@@ -16,7 +17,8 @@ Page({
     this.setData({
       resultUrl: fixImage(saveUrl),
       saveUrl,
-      ids: q.ids ? JSON.parse(decodeURIComponent(q.ids)) : []
+      ids: q.ids ? JSON.parse(decodeURIComponent(q.ids)) : [],
+      target: q.target ? decodeURIComponent(q.target) : ''
     })
     this.loadOutfitItems()
   },
@@ -28,7 +30,7 @@ Page({
   async loadOutfitItems() {
     if (!this.data.ids.length) return
     try {
-      const items = await api.getItems()
+      const items = await api.getItems(this.data.target)
       const map = {}
       for (const it of (items || [])) {
         map[it.id] = { ...it, image: this.fixImg(it.imageUrl || it.image) }
@@ -48,7 +50,7 @@ Page({
     }
     this.setData({ saving: true })
     try {
-      await api.saveTryOnRecord(ids, saveUrl)
+      await api.saveTryOnRecord(ids, saveUrl, this.data.target)
       this.setData({ saved: true })
       wx.showToast({ title: '已保存到试穿记录', icon: 'success' })
     } catch (e) {

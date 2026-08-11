@@ -8,6 +8,7 @@ const router = useRouter()
 
 const resultUrl = ref('')
 const itemIds = ref([])
+const targetOpenid = ref('')
 const selectedItems = ref([])
 const saving = ref(false)
 const saved = ref(false)
@@ -21,9 +22,10 @@ onMounted(async () => {
   }
   resultUrl.value = cache.resultUrl
   itemIds.value = cache.itemIds
+  targetOpenid.value = cache.targetOpenid || ''
 
   try {
-    const allItems = await getItems()
+    const allItems = await getItems(targetOpenid.value)
     selectedItems.value = allItems.filter(it => itemIds.value.includes(it.id))
   } catch { /* ignore */ }
 })
@@ -38,7 +40,7 @@ async function handleSave() {
   saving.value = true
   error.value = ''
   try {
-    await saveTryOnRecord(itemIds.value, resultUrl.value)
+    await saveTryOnRecord(itemIds.value, resultUrl.value, targetOpenid.value)
     saved.value = true
   } catch (err) {
     error.value = err.message || '保存失败，请重试'

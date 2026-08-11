@@ -9,12 +9,10 @@ router = APIRouter(tags=["auth"])
 @router.post("/api/auth/login")
 def api_auth_login(body: dict = Body(default={})):
     code = body.get("code") or ""
-    nickname = body.get("nickname") or ""
-    avatar = body.get("avatar") or ""
     if not code:
         raise HTTPException(status_code=400, detail="缺少 code")
     try:
-        return auth_core.login_with_code(code, nickname, avatar)
+        return auth_core.login_with_code(code)
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=401, detail=str(e))
 

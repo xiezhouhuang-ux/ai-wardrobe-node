@@ -22,12 +22,21 @@ Page({
         api.login(res.code)
           .then((r) => {
             const token = r.token || ''  // 后端签发的 JWT
-            const userInfo = {
-              nickname: (r.user && r.user.nickname) || '',
-              avatar: fixImage((r.user && r.user.avatar) || ''),
-              createdAt: (r.user && r.user.createdAt) || 0
-            }
-            app.saveLogin(token, userInfo)
+            // 先持久化 token，后续 userProfile 请求才带 Authorization
+            app.saveLogin(token, {})
+            // 登录接口只下发 token/openid，用户信息需额外拉取 /api/user/profile
+            return api.userProfile().then((pr) => {
+              const u = (pr && pr.user) || {}
+              const userInfo = {
+                nickname: u.nickname || '',
+                avatar: fixImage(u.avatar || ''),
+                createdAt: u.createdAt || 0
+              }
+              app.saveLogin(token, userInfo)
+            }).catch(() => {})
+          })
+          .then(() => {
+            this.setData({ loading: false })
             wx.showToast({ title: '授权成功', icon: 'success' })
             setTimeout(() => {
               // 回到上一页（通常是「我的」）

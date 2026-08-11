@@ -27,14 +27,18 @@ def wx_code2session(code: str) -> dict:
     return data
 
 
-def login_with_code(code: str, nickname: str = "", avatar: str = "") -> dict:
-    """微信 code 登录：解析 openid -> upsert 用户 -> 签发 JWT。"""
+def login_with_code(code: str) -> dict:
+    """微信 code 登录：解析 openid -> upsert 用户 -> 签发 JWT。
+
+    仅用于登录，不更新 nickname/avatar（资料更新走 /api/user/profile）。
+    首次注册由 upsert_user 生成随机昵称。
+    """
     try:
         wx_info = wx_code2session(code)
     except Exception as e:
         raise RuntimeError(str(e)) from e
     openid = wx_info["openid"]
-    store.upsert_user(openid, nickname or "微信用户", avatar)
+    store.upsert_user(openid)
     token = jwt_token.create_token(openid, role="user")
     return {"ok": True, "token": token, "openid": openid, "role": "user"}
 

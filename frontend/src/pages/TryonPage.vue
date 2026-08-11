@@ -6,6 +6,12 @@ import { setTryOnResultData, clearTryOnResultData } from '../utils/tryon-cache.j
 
 const router = useRouter()
 
+const users = ref([])
+const step = ref('users')        // 'users' | 'wardrobe'
+const currentUser = ref(null)    // 选中的用户 { openid, nickname, avatar }
+const loadingUsers = ref(false)
+const loadingWardrobe = ref(false)
+
 const wardrobe = ref([])
 const userPhoto = ref(null)
 const selected = ref({})   // { 上衣: itemId, 下装: itemId, 鞋: itemId, 包: itemId }
@@ -22,7 +28,6 @@ const grouped = computed(() => {
     const cat = it.category
     if (map[cat]) map[cat].push(it)
     else {
-      // 容错：归到其他分类
       if (!map['其他']) map['其他'] = []
       map['其他'].push(it)
     }
@@ -43,17 +48,56 @@ const selectedItems = computed(() => {
 })
 
 const canGenerate = computed(() => {
-  return selectedItems.value.length > 0 && !generating.value
+  return selectedItems.value.length > 0 && !generating.value && !!userPhoto.value
 })
 
 onMounted(async () => {
-  try {
-    wardrobe.value = await api.getItems()
-    userPhoto.value = await api.getUserPhoto()
-  } catch {
-    // 用户照片未上传
-  }
+  await loadUsers()
 })
+
+async function loadUsers() {
+  loadingUsers.value = true
+  error.value = ''
+  try {
+    const res = await api.getUsers()
+    const list = res.items || res.list || res || []
+    users.value = Array.isArray(list) ? list : []
+  } catch (err) {
+    error.value = err.message || '加载用户列表失败'
+  } finally {
+    loadingUsers.value = false
+  }
+}
+
+async function enterWardrobe(user) {
+  currentUser.value = user
+  step.value = 'wardrobe'
+  selected.value = {}
+  clearTryOnResultData()
+  loadingWardrobe.value = true
+  error.value = ''
+  try {
+    const [items, photo] = await Promise.all([
+      api.getItems(user.openid),
+      api.getUserPhoto(),
+    ])
+    wardrobe.value = items || []
+    userPhoto.value = photo || null
+  } catch {
+    userPhoto.value = null
+  } finally {
+    loadingWardrobe.value = false
+  }
+}
+
+function backToUsers() {
+  step.value = 'users'
+  currentUser.value = null
+  wardrobe.value = []
+  userPhoto.value = null
+  selected.value = {}
+  clearTryOnResultData()
+}
 
 function toggleSelect(cat, itemId) {
   if (selected.value[cat] === itemId) {
@@ -61,16 +105,11 @@ function toggleSelect(cat, itemId) {
   } else {
     selected.value[cat] = itemId
   }
-  // 触发响应式
   selected.value = { ...selected.value }
 }
 
 function isSelected(cat, itemId) {
   return selected.value[cat] === itemId
-}
-
-function goToMe() {
-  router.push('/me')
 }
 
 async function generate() {
@@ -79,9 +118,8 @@ async function generate() {
   generating.value = true
   error.value = ''
   try {
-    const res = await api.tryOn(ids)
-    // 将结果数据写入 sessionStorage 后跳转新页面
-    setTryOnResultData({ resultUrl: res.resultUrl, itemIds: ids })
+    const res = await api.tryOn(ids, currentUser.value.openid)
+    setTryOnResultData({ resultUrl: res.resultUrl, itemIds: ids, targetOpenid: currentUser.value.openid })
     router.push('/tryon/result')
   } catch (err) {
     error.value = err.message || '试穿生成失败，请重试'
@@ -101,59 +139,97 @@ function reset() {
   <div class="page">
     <h1 class="title">🪄 AI 试穿</h1>
 
-    <!-- 无全身照 -->
-    <div v-if="!userPhoto" class="banner">
-      <span>⚠️ 尚未上传全身正面照，无法生成试穿效果</span>
-      <button class="btn ghost" @click="goToMe">去上传</button>
+    <!-- 步骤一：选择用户 -->
+    <div v-if="step === 'users'">
+      <div class="sub">请选择一位用户，进入其衣橱进行试穿</div>
+      <div v-if="loadingUsers" class="empty">加载用户列表中…</div>
+      <div v-else-if="!users.length" class="empty">暂无用户</div>
+      <div v-else class="user-list">
+        <div
+          v-for="u in users"
+          :key="u.openid"
+          class="user-row"
+          @click="enterWardrobe(u)"
+        >
+          <img
+            v-if="u.avatar"
+            :src="u.avatar"
+            class="user-avatar"
+            alt="头像"
+          />
+          <div v-else class="user-avatar placeholder">{{ (u.nickname || u.openid || '?').slice(0, 1) }}</div>
+          <div class="user-info">
+            <div class="user-name">{{ u.nickname || '未命名用户' }}</div>
+            <div class="user-openid">{{ u.openid }}</div>
+          </div>
+          <span class="enter">进入衣橱 ›</span>
+        </div>
+      </div>
     </div>
 
-    <!-- 全身照已就绪 -->
-    <div v-else class="photo-row">
-      <img :src="userPhoto.url" class="user-photo" alt="我的全身照" />
-      <span class="badge">✓ 底图已就绪</span>
-    </div>
+    <!-- 步骤二：选择单品试穿 -->
+    <div v-else>
+      <div class="crumb" @click="backToUsers">‹ 返回用户列表</div>
+      <div class="user-bar">
+        <img v-if="currentUser.avatar" :src="currentUser.avatar" class="bar-avatar" alt="头像" />
+        <div v-else class="bar-avatar placeholder">{{ (currentUser.nickname || '?').slice(0, 1) }}</div>
+        <div class="bar-info">
+          <div class="bar-name">{{ currentUser.nickname || '未命名用户' }}</div>
+          <div class="bar-openid">{{ currentUser.openid }}</div>
+        </div>
+      </div>
 
-    <!-- 选择单品 -->
-    <div class="section">
-      <h3>选择穿搭单品 <span class="sel-count">已选 {{ selectedItems.length }} / 4</span></h3>
+      <div v-if="loadingWardrobe" class="empty">加载衣橱中…</div>
 
-      <div v-for="cat in CATEGORIES" :key="cat" class="cat-section">
-        <div class="cat-head">{{ cat }}</div>
-        <div v-if="grouped[cat]?.length" class="items-row">
-          <div
-            v-for="it in grouped[cat]"
-            :key="it.id"
-            class="item-card"
-            :class="{ active: isSelected(cat, it.id) }"
-            @click="toggleSelect(cat, it.id)"
-          >
-            <div
-              class="item-thumb"
-              :style="{ backgroundImage: `url('${it.imageUrl}')` }"
-            ></div>
-            <div class="item-meta">
-              <span class="item-name">{{ it.color || it.category }}</span>
-              <span class="item-check">{{ isSelected(cat, it.id) ? '✓' : '' }}</span>
+      <template v-else>
+        <!-- 无全身照 -->
+        <div v-if="!userPhoto" class="banner">
+          <span>⚠️ 该用户尚未上传全身正面照，无法生成试穿效果</span>
+        </div>
+        <div v-else class="photo-row">
+          <img :src="userPhoto.url" class="user-photo" alt="全身照" />
+          <span class="badge">✓ 底图已就绪</span>
+        </div>
+
+        <!-- 选择单品 -->
+        <div class="section">
+          <h3>选择穿搭单品 <span class="sel-count">已选 {{ selectedItems.length }} / 4</span></h3>
+          <div v-for="cat in CATEGORIES" :key="cat" class="cat-section">
+            <div class="cat-head">{{ cat }}</div>
+            <div v-if="grouped[cat]?.length" class="items-row">
+              <div
+                v-for="it in grouped[cat]"
+                :key="it.id"
+                class="item-card"
+                :class="{ active: isSelected(cat, it.id) }"
+                @click="toggleSelect(cat, it.id)"
+              >
+                <div class="item-thumb" :style="{ backgroundImage: `url('${it.imageUrl || ''}')` }"></div>
+                <div class="item-meta">
+                  <span class="item-name">{{ it.color || it.category }}</span>
+                  <span class="item-check">{{ isSelected(cat, it.id) ? '✓' : '' }}</span>
+                </div>
+              </div>
             </div>
+            <div v-else class="cat-empty">暂无{{ cat }}单品</div>
           </div>
         </div>
-        <div v-else class="cat-empty">暂无{{ cat }}单品，去衣橱添加</div>
-      </div>
-    </div>
 
-    <!-- 已选概览 + 操作 -->
-    <div v-if="selectedItems.length" class="overview">
-      <div class="ov-title">已选单品</div>
-      <div class="ov-items">
-        <div v-for="it in selectedItems" :key="it.id" class="ov-chip">
-          <div class="ov-thumb" :style="{ backgroundImage: `url('${it.imageUrl}')` }"></div>
-          <span>{{ it.category }} · {{ it.color }}</span>
+        <!-- 已选概览 + 操作 -->
+        <div v-if="selectedItems.length" class="overview">
+          <div class="ov-title">已选单品</div>
+          <div class="ov-items">
+            <div v-for="it in selectedItems" :key="it.id" class="ov-chip">
+              <div class="ov-thumb" :style="{ backgroundImage: `url('${it.imageUrl || ''}')` }"></div>
+              <span>{{ it.category }} · {{ it.color }}</span>
+            </div>
+          </div>
+          <button class="btn primary" :disabled="!canGenerate" @click="generate">
+            {{ generating ? '正在生成…' : '生成试穿效果' }}
+          </button>
+          <button class="btn outline" style="margin-top:8px" @click="reset">🔄 重新选择</button>
         </div>
-      </div>
-      <button class="btn primary" :disabled="!canGenerate" @click="generate">
-        {{ generating ? '正在生成…' : '生成试穿效果' }}
-      </button>
-      <button class="btn outline" style="margin-top:8px" @click="reset">🔄 重新选择</button>
+      </template>
     </div>
 
     <div v-if="error" class="error">⚠️ {{ error }}</div>
@@ -334,4 +410,99 @@ function reset() {
   margin-top: 10px;
   text-align: center;
 }
+
+/* 步骤一：用户列表 */
+.sub {
+  font-size: 13px;
+  color: var(--muted, #93a0b2);
+  margin-bottom: 12px;
+}
+.empty {
+  text-align: center;
+  color: var(--muted, #93a0b2);
+  font-size: 13px;
+  padding: 30px 0;
+}
+.user-list {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid var(--line, #e8ecf1);
+  overflow: hidden;
+}
+.user-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: background .15s;
+}
+.user-row:hover { background: #f7f9fc; }
+.user-row + .user-row { border-top: 1px solid var(--line, #eef1f5); }
+.user-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #eef1f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--muted, #93a0b2);
+  font-weight: 600;
+}
+.user-info { flex: 1; min-width: 0; }
+.user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink, #1a2b3c);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.user-openid {
+  font-size: 11px;
+  color: var(--muted, #93a0b2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.enter { color: var(--accent, #5b7fff); font-size: 13px; flex-shrink: 0; }
+
+/* 步骤二：头部 */
+.crumb {
+  font-size: 13px;
+  color: var(--accent, #5b7fff);
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+.user-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid var(--line, #e8ecf1);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+}
+.bar-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #eef1f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: var(--muted, #93a0b2);
+  font-weight: 600;
+}
+.bar-info { min-width: 0; }
+.bar-name { font-size: 14px; font-weight: 600; color: var(--ink, #1a2b3c); }
+.bar-openid { font-size: 11px; color: var(--muted, #93a0b2); }
 </style>

@@ -1,166 +1,68 @@
-// pages/tryon/tryon.js —— AI 试穿（按分类选择衣橱单品，与 frontend 逻辑一致）
+// pages/tryon/tryon.js —— AI 试穿（管理视角：选择用户，跳转其衣橱试穿）
 const api = require('../../utils/api.js')
-const fixImage = require('../../utils/image.js')
-
-const CATEGORIES = ['上衣', '下装', '鞋', '包']
 
 Page({
   data: {
-    userPhoto: '',
-    wardrobe: [],
-    groupList: [],       // [{ cat, items: [...] }]
-    selected: {},       // { '上衣': itemId, '下装': itemId, ... }
-    selectedItems: [],  // 已选单品详情（按 CATEGORIES 顺序）
-    categories: CATEGORIES,
-    generating: false,
+    users: [],
+    loadingUsers: false,
     error: ''
   },
 
   onLoad() {
-    this.loadUserPhoto()
-    this.loadWardrobe()
+    this.loadUsers()
   },
 
   onShow() {
-    // 每次展示时刷新数据
-    this.loadUserPhoto()
-    this.loadWardrobe()
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 2 })
     }
   },
 
-  fixImage(u) {
-    return fixImage(u)
+  makeInitial(name) {
+    const s = (name || '?').trim()
+    return s ? s.slice(0, 1) : '?'
   },
 
-  async loadUserPhoto() {
+  async loadUsers() {
+    this.setData({ loadingUsers: true, error: '' })
     try {
-      const r = await api.getUserPhoto()
-      // 后端可能返回 {photo:{url}} 或 {url, path}，需兼容对象与字符串两种形态
-      const photo = r && r.photo ? r.photo : (r && (r.url || r.path) ? r : null)
-      const url = photo ? this.fixImage(photo.url || photo) : ''
-      this.setData({ userPhoto: url })
-    } catch (e) { /* ignore */ }
-  },
-
-  async loadWardrobe() {
-    try {
-      const list = await api.getItems()
-      const items = (list || []).map(it => ({
-        ...it,
-        image: this.fixImage(it.imageUrl || it.image)
+      const r = await api.getUsers()
+      const me = getApp().globalData.userInfo || {}
+      // 自己：昵称/头像取自登录态；openid 优先取后端直接返回的 selfOpenid（JWT 解析，必定可靠）
+      const self = r && r.self
+      const selfOpenid = (r && r.selfOpenid) || (self && self.openid) || ''
+      const selfUser = {
+        openid: selfOpenid,
+        nickname: me.nickname || (self && self.nickname) || '我',
+        avatar: me.avatar || (self && self.avatar) || '',
+        isSelf: true,
+        initial: this.makeInitial(me.nickname || (self && self.nickname) || '我')
+      }
+      const list = (r && (r.list || r.items || [])) || []
+      const others = (Array.isArray(list) ? list : []).map(u => ({
+        ...u,
+        isSelf: false,
+        initial: this.makeInitial(u.nickname || u.openid || '?')
       }))
-      // 按分类分组（仅展示有定义的四类）
-      const map = {}
-      for (const c of CATEGORIES) map[c] = []
-      const others = []
-      for (const it of items) {
-        const cat = it.category
-        if (map[cat]) map[cat].push(it)
-        else others.push(it)
-      }
-      const groupList = CATEGORIES.map(cat => ({ cat, items: map[cat] }))
-      this.setData({ wardrobe: items, groupList })
-      // 若从详情页带过来待选中的单品，加载完成后自动选中
-      this.applyPendingSelection()
-    } catch (e) { /* ignore */ }
-  },
-
-  // 自动选中从详情页带入的单品（仅当该单品属于当前可选四类时）
-  applyPendingSelection() {
-    const app = getApp() || {}
-    const pendingId = app.globalData && app.globalData.pendingTryonItemId
-    if (!pendingId) return
-    // 消费一次，避免重复选中
-    app.globalData.pendingTryonItemId = ''
-    const it = (this.data.wardrobe || []).find(i => String(i.id) === String(pendingId))
-    if (!it) return
-    const cat = it.category
-    if (!CATEGORIES.includes(cat)) {
-      // 该单品不在当前可选分类（如帽子），不自动选中
-      return
-    }
-    const selected = Object.assign({}, this.data.selected)
-    selected[cat] = it.id
-    this.updateSelectedItems(selected)
-  },
-
-  onUploadUser() {
-    wx.chooseMedia({
-      count: 1,
-      mediaType: ['image'],
-      sourceType: ['album', 'camera'],
-      success: async (res) => {
-        if (!res.tempFiles || !res.tempFiles[0]) return
-        try {
-          wx.showLoading({ title: '上传中…' })
-          const r = await api.uploadUserPhoto(res.tempFiles[0].tempFilePath)
-          this.setData({ userPhoto: this.fixImage(r.photo) })
-        } catch (e) {
-          wx.showToast({ title: e.message || '上传失败', icon: 'none' })
-        } finally {
-          wx.hideLoading()
-        }
-      }
-    })
-  },
-
-  goToMe() {
-    wx.navigateTo({ url: '/pages/user-photo/user-photo' })
-  },
-
-  // 点击某分类下的单品：单选（再次点击取消）
-  onToggleSelect(e) {
-    const { cat, id } = e.currentTarget.dataset
-    const selected = Object.assign({}, this.data.selected)
-    if (selected[cat] === id) delete selected[cat]
-    else selected[cat] = id
-    this.updateSelectedItems(selected)
-  },
-
-  isSelected(cat, id) {
-    return this.data.selected[cat] === id
-  },
-
-  updateSelectedItems(selected) {
-    const wardrobe = this.data.wardrobe
-    const selectedItems = []
-    for (const cat of CATEGORIES) {
-      const id = selected[cat]
-      if (!id) continue
-      const it = wardrobe.find(i => i.id === id)
-      if (it) selectedItems.push(it)
-    }
-    this.setData({ selected, selectedItems })
-  },
-
-  // 生成试穿
-  async onGenerate() {
-    if (!this.data.userPhoto) {
-      wx.showToast({ title: '请先上传全身照', icon: 'none' })
-      return
-    }
-    const ids = CATEGORIES.map(c => this.data.selected[c]).filter(Boolean)
-    if (!ids.length) {
-      wx.showToast({ title: '请选择单品', icon: 'none' })
-      return
-    }
-    this.setData({ generating: true, error: '' })
-    try {
-      const r = await api.tryOn(ids)
-      const resultUrl = this.fixImage(r.resultUrl)
-      wx.navigateTo({
-        url: `/pages/tryon-result/tryon-result?resultUrl=${encodeURIComponent(r.resultUrl)}&ids=${encodeURIComponent(JSON.stringify(ids))}`
-      })
+      // 自己置顶，与其他用户区分
+      this.setData({ users: [selfUser, ...others] })
     } catch (e) {
-      this.setData({ error: e.message || '试穿生成失败，请重试' })
+      this.setData({ error: e.message || '加载用户列表失败', users: [] })
     } finally {
-      this.setData({ generating: false })
+      this.setData({ loadingUsers: false })
     }
   },
 
-  onReset() {
-    this.setData({ selected: {}, selectedItems: [], error: '' })
+  // 进入某用户衣橱试穿（跳转新页面）
+  enterWardrobe(e) {
+    const openid = e.currentTarget.dataset.openid
+    const user = this.data.users.find(u => u.openid === openid)
+    if (!user) return
+    const params = [
+      `openid=${encodeURIComponent(user.openid)}`,
+      `nickname=${encodeURIComponent(user.nickname || '')}`,
+      `avatar=${encodeURIComponent(user.avatar || '')}`
+    ].join('&')
+    wx.navigateTo({ url: `/pages/tryon-wardrobe/tryon-wardrobe?${params}` })
   }
 })

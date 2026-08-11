@@ -60,3 +60,23 @@ def api_get_profile(openid: str = Depends(require_openid)):
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
     return {"ok": True, "user": user}
+
+
+class ProfilePayload(BaseModel):
+    nickname: str = ""
+    avatar: str = ""
+
+
+@router.post("/api/user/profile")
+def api_update_profile(payload: ProfilePayload, openid: str = Depends(require_openid)):
+    """更新当前用户的昵称与头像（仅传入非空字段才覆盖）。"""
+    if not payload.nickname and not payload.avatar:
+        raise HTTPException(status_code=400, detail="nickname 与 avatar 至少传入一项")
+    # 昵称为用户输入，需过内容安全检测
+    if payload.nickname:
+        try:
+            security.check_text(payload.nickname, scene=2, openid=openid)
+        except security.ContentRiskError as cre:
+            raise HTTPException(status_code=403, detail=str(cre.message))
+    store.upsert_user(openid, payload.nickname, payload.avatar)
+    return {"ok": True, "user": store.get_user(openid)}

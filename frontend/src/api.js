@@ -27,8 +27,14 @@ export async function getConfig() {
   return request('/api/config')
 }
 
-export async function getItems() {
-  return request('/api/items')
+export async function getItems(targetOpenid) {
+  const url = targetOpenid ? `/api/items?target=${encodeURIComponent(targetOpenid)}` : '/api/items'
+  return request(url)
+}
+
+/** 获取所有用户列表（管理视角，供切换用户衣橱试穿） */
+export async function getUsers() {
+  return request('/api/users')
 }
 
 export async function deleteItem(id) {
@@ -97,20 +103,20 @@ export async function uploadUserPhoto(file) {
 
 // ---------------- AI 试穿 ----------------
 
-export async function tryOn(itemIds) {
+export async function tryOn(itemIds, targetOpenid) {
   return request('/api/tryon', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ itemIds }),
+    body: JSON.stringify({ itemIds, target: targetOpenid || '' }),
   })
 }
 
-/** 保存试穿记录 */
-export async function saveTryOnRecord(itemIds, resultUrl) {
+/** 保存试穿记录（openid 传目标用户，归属到被试穿用户） */
+export async function saveTryOnRecord(itemIds, resultUrl, targetOpenid) {
   return request('/api/tryon/save', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ itemIds, resultUrl }),
+    body: JSON.stringify({ itemIds, resultUrl, openid: targetOpenid || '' }),
   })
 }
 

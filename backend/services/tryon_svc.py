@@ -23,7 +23,7 @@ def build_item_snapshots(openid: str, item_ids: list) -> tuple:
     - snapshots: [{id, name, category, color, style, imageUrl, imagePath}]
     - missing_ids: 不存在的 id 列表
     """
-    found_items = store.get_items_by_ids(item_ids, openid)
+    found_items = store.get_items_by_ids(item_ids)
     item_map = {it["id"]: it for it in found_items}
     snapshots = []
     missing = []

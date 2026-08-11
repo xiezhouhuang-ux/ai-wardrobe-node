@@ -126,6 +126,7 @@ module.exports = {
 
   // 微信授权登录 / 用户资料
   login: (code) => request({ method: 'POST', path: '/api/auth/login', data: { code }, authRequired: false }),
+  userProfile: () => request({ path: '/api/user/profile', authRequired: true }),
   updateProfile: (nickname, avatar) => request({
     method: 'POST', path: '/api/user/profile', data: { nickname: nickname || '', avatar: avatar || '' }
   }),
@@ -133,8 +134,11 @@ module.exports = {
 
   // 单品
   getConfig: () => request({ path: '/api/config' }),
-  getItems: () => request({ path: '/api/items' , authRequired: false }),
+  getItems: (target) => request({ path: target ? `/api/items?target=${encodeURIComponent(target)}` : '/api/items', authRequired: false }),
   getItem: (id) => request({ path: `/api/items/${id}` }),
+
+  // 用户（管理视角：供切换用户衣橱试穿）
+  getUsers: (page = 1, size = 200) => request({ path: `/api/users?page=${page}&size=${size}`, authRequired: true }),
   deleteItem: (id) => request({ method: 'DELETE', path: `/api/items/${id}` }),
   getStats: () => request({ path: '/api/stats' , authRequired: false }),
 
@@ -157,11 +161,11 @@ module.exports = {
   }),
 
   // AI 试穿
-  getUserPhoto: () => request({ path: '/api/user/photo', authRequired: false }),
+  getUserPhoto: (target) => request({ path: target ? `/api/user/photo?target=${encodeURIComponent(target)}` : '/api/user/photo', authRequired: false }),
   uploadUserPhoto: (filePath) => upload({ path: '/api/user/photo', filePath, name: 'photo', authRequired: true }),
-  tryOn: (itemIds) => request({ method: 'POST', path: '/api/tryon', data: { itemIds } }),
-  saveTryOnRecord: (itemIds, resultUrl) => request({
-    method: 'POST', path: '/api/tryon/save', data: { itemIds, resultUrl }
+  tryOn: (itemIds, target) => request({ method: 'POST', path: '/api/tryon', data: { itemIds, target: target || '' } }),
+  saveTryOnRecord: (itemIds, resultUrl, target) => request({
+    method: 'POST', path: '/api/tryon/save', data: { itemIds, resultUrl, target: target || '' }
   }),
   getTryOnRecords: () => request({ path: '/api/tryon/records' , authRequired: false}),
   deleteTryOnRecord: (recordId) => request({
