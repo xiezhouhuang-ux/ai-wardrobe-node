@@ -110,27 +110,26 @@ Page({
 
   onChooseAvatar(e) {
     const { avatarUrl } = e.detail
-    this.setData({ avatarUrl })
-    // 仅上传头像，不关闭弹层（昵称仍待用户输入）
-    this.uploadAvatarOnly(avatarUrl)
+     // 仅上传头像，不关闭弹层（昵称仍待用户输入）
+    this.uploadAvatarOnly(avatarUrl) 
   },
 
   async uploadAvatarOnly(avatarUrl) {
     if (!this.data.token || !avatarUrl) return
     let finalAvatar = avatarUrl
-    if (!finalAvatar.startsWith('http')) {
-      try {
+    try {
         const up = await api.uploadAvatar(finalAvatar)
-        finalAvatar = (up && up.url) || finalAvatar
+        const  avatarUrl  = (up && up.url) || finalAvatar
+        this.setData({avatarUrl :fixImage(avatarUrl)})
       } catch (e) {
         wx.showToast({ title: e.message || '头像上传失败', icon: 'none' })
         return
       }
-    }
-    await this.persistProfile(finalAvatar, this.data.draftNickname)
+    
   },
 
   onSaveFromSheet() {
+    console.log(this.data.avatarUrl)
     this.saveProfile(this.data.avatarUrl, this.data.draftNickname)
   },
 
@@ -143,16 +142,6 @@ Page({
   async saveProfile(avatarUrl, nickname) {
     if (!this.data.token) return
     let finalAvatar = avatarUrl || ''
-    // 本地临时文件（wxfile:// 或 http://tmp）需先上传后端换取可访问 URL
-    if (finalAvatar && !finalAvatar.startsWith('http')) {
-      try {
-        const up = await api.uploadAvatar(finalAvatar)
-        finalAvatar = (up && up.url) || finalAvatar
-      } catch (e) {
-        wx.showToast({ title: e.message || '头像上传失败', icon: 'none' })
-        return
-      }
-    }
     await this.persistProfile(finalAvatar, nickname, true)
   },
 

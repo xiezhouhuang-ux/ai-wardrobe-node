@@ -107,5 +107,23 @@ Page({
   onTapAdd() { this.onTapFab() },
   onTapFab() {
     wx.navigateTo({ url: '/pages/capture/capture' })
+  },
+
+  // 转发给好友（右上角菜单 / 页面内分享按钮）
+  onShareAppMessage() {
+    const first = (this.data.filtered && this.data.filtered[0]) || {}
+    return {
+      title: 'AI衣橱 · 我的时尚搭配小助手',
+      path: '/pages/home/home',
+      imageUrl: first.image || ''
+    }
+  },
+
+  // 转发到朋友圈（基础库 2.11.3+）
+  onShareTimeline() {
+    return {
+      title: 'AI衣橱 · 我的时尚搭配小助手',
+      path: '/pages/home/home'
+    }
   }
 })

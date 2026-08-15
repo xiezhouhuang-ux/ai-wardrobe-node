@@ -134,11 +134,8 @@ async def api_tryon(payload: TryonPayload, openid: str = Depends(require_openid)
     if not item_ids:
         raise HTTPException(status_code=400, detail="缺少单品")
 
-    # 管理视角下可指定被试穿用户；缺省为当前登录用户
-    target = (payload.target and str(payload.target).strip()) or openid
-
     # 取用户全身照（按目标用户隔离）
-    photo = store.get_user_photo(target)
+    photo = store.get_user_photo(openid)
     if not photo or not photo.get("path"):
         raise HTTPException(status_code=400, detail="该用户尚未上传全身照，无法试穿")
     photo_path = photo["path"]
@@ -146,6 +143,6 @@ async def api_tryon(payload: TryonPayload, openid: str = Depends(require_openid)
         raise HTTPException(status_code=400, detail="全身照文件不存在，请重新上传")
 
     try:
-        return wardrobe_svc.tryon(target, item_ids, str(photo_path))
+        return wardrobe_svc.tryon(openid, item_ids, str(photo_path))
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=str(e))

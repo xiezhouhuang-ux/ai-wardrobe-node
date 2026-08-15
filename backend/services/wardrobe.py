@@ -21,7 +21,7 @@ def process_photo(openid: str, files) -> dict:
         raise ValueError("请上传正面照")
     upload = files[0]
     src = save_upload(upload)
-    photo_url = f"{UPLOADS_PHOTOS}/{src.name}"
+    photo_url = f"/uploads/photos/{src.name}"
     try:
         items = detect_clothing(str(src))
     except Exception as e:  # noqa: BLE001
@@ -31,7 +31,7 @@ def process_photo(openid: str, files) -> dict:
     for idx, it in enumerate(items):
         it["id"] = new_id("it")
         it["createdAt"] = int(time.time() * 1000)
-        it["imageUrl"] = f"{UPLOADS_PHOTOS}/{src.name}"
+        it["imageUrl"] = f"/uploads/photos/{src.name}"
         it["imagePath"] = str(src)
         valid.append(it)
         if idx >= 9:
@@ -49,7 +49,7 @@ def analyze(openid: str, files) -> dict:
         raise ValueError("请上传服装照")
     upload = files[0]
     src = save_upload(upload)
-    photo_url = f"{UPLOADS_PHOTOS}/{src.name}"
+    photo_url = f"/uploads/photos/{src.name}"
     try:
         items = detect_clothing(str(src))
     except Exception as e:  # noqa: BLE001

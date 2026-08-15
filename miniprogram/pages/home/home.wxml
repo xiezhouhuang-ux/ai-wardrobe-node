@@ -4,8 +4,14 @@
 
   <!-- 标题区 -->
   <view class="home-title">
-    <view class="home-time">{{greetText}}，</view>
-    <view class="home-name">开始搭配吧</view>
+    <view class="home-title-text">
+      <view class="home-time">{{greetText}}，</view>
+      <view class="home-name">开始搭配吧</view>
+    </view>
+    <button class="share-btn" open-type="share" data-name="shareBtn">
+      <text class="share-ico">↗</text>
+      <text class="share-txt">分享</text>
+    </button>
   </view>
 
   <!-- 统计条 -->

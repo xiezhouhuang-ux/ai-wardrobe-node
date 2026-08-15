@@ -30,6 +30,37 @@ App({
     this.restoreLogin()
     // 注意：不再自动静默登录。未登录时不会主动调用 /api/auth/login，
     // 也不自动跳转授权页；点击「微信授权登录」才发起登录请求。
+
+    // 隐私保护指引适配：chooseAvatar / getPhoneNumber 等接口需用户先同意隐私协议。
+    // 注册全局拦截，未授权时拉起系统隐私授权窗，用户同意后再继续原接口调用。
+    this.setupPrivacy()
+  },
+
+  // 全局错误兜底：吞掉部分开发者工具/基础库下 chooseAvatar 原生组件误报的
+  // "chooseAvatar:fail ... not found" 渲染层错误，避免弹窗打断（真实设备正常）。
+  onError(err) {
+    const msg = (err && (err.message || err)) + ''
+    if (msg.indexOf('chooseAvatar:fail') !== -1) {
+      console.warn('已忽略 chooseAvatar 组件兼容报错:', msg)
+      return
+    }
+    console.error('[App onError]', err)
+  },
+
+  // 隐私协议全局适配（基础库 2.32.3+）
+  setupPrivacy() {
+    if (typeof wx.onNeedPrivacyAuthorize !== 'function') return
+    wx.onNeedPrivacyAuthorize((resolve) => {
+      if (typeof wx.requirePrivacyAuthorize !== 'function') {
+        // 旧基础库不支持，直接放行
+        resolve({ event: 'agree', errMsg: 'requirePrivacyAuthorize:ok' })
+        return
+      }
+      wx.requirePrivacyAuthorize({
+        success: () => resolve({ event: 'agree', errMsg: 'requirePrivacyAuthorize:ok' }),
+        fail: () => resolve({ event: 'disagree' })
+      })
+    })
   },
 
   // 从本地存储恢复登录态到全局（持久化的是 JWT，openid 不再下发到前端）

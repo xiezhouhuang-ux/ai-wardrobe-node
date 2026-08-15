@@ -1,6 +1,13 @@
 .home-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding-top: 16rpx;
   padding-bottom: 24rpx;
+}
+.home-title-text {
+  flex: 1;
+  min-width: 0;
 }
 .home-time {
   font-size: 28rpx;
@@ -12,6 +19,29 @@
   color: var(--color-text, #3a2a1f);
   letter-spacing: 2rpx;
   margin-top: 4rpx;
+}
+.share-btn {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 10rpx 22rpx;
+  background: var(--color-surface, #fffaf3);
+  border-radius: var(--radius-pill, 999rpx);
+  box-shadow: var(--shadow-card, 0 8rpx 24rpx rgba(58, 42, 31, 0.06));
+  font-size: 26rpx;
+  color: var(--color-accent, #c96b4a);
+  line-height: 1;
+}
+.share-btn::after {
+  border: none;
+}
+.share-ico {
+  font-size: 30rpx;
+}
+.share-txt {
+  font-weight: 600;
 }
 
 /* 统计条 */

@@ -14,37 +14,56 @@
 }
 
 /* ---------- 底图 ---------- */
+/* 提示条 */
 .banner {
-  background: #fbeede;
-  border-radius: var(--radius-sm, 16rpx);
-  padding: 24rpx;
-  margin-bottom: 24rpx;
-}
-
-.banner-text {
-  font-size: 26rpx;
-  color: var(--color-accent-deep, #a85a3d);
-}
-
-.photo-row {
-  margin-bottom: 24rpx;
-}
-
-.user-photo {
-  width: 100%;
-  height: 440rpx;
+  background: #fff7e6;
   border-radius: var(--radius-md, 24rpx);
-  background: var(--color-surface-2, #efe5d7);
-  display: block;
+  padding: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-bottom: 24rpx;
+}
+.banner-text {
+  flex: 1;
+  font-size: 24rpx;
+  color: #8a6a3a;
+  line-height: 1.4;
+}
+.banner-btn {
+  flex-shrink: 0;
+  margin: 0;
+  height: 64rpx;
+  line-height: 64rpx;
+  font-size: 24rpx;
+  padding: 0 28rpx;
 }
 
-.photo-note {
-  display: block;
-  text-align: center;
-  margin-top: 16rpx;
-  font-size: 24rpx;
-  color: var(--color-text-soft, #8b7a6a);
+/* 底图信息 */
+.photo-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin-bottom: 24rpx;
+  background: var(--color-surface, #fffaf3);
+  padding: 20rpx 24rpx;
+  border-radius: var(--radius-md, 24rpx);
+  box-shadow: var(--shadow-card, 0 8rpx 24rpx rgba(58,42,31,0.06));
 }
+.user-photo {
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 20rpx;
+  background: #efe5d7;
+  flex-shrink: 0;
+}
+.badge {
+  color: #3a9d5a;
+  font-size: 26rpx;
+  font-weight: 500;
+}
+
 
 /* ---------- 分类选择 ---------- */
 .section {

@@ -1,4 +1,5 @@
 """用户全身照表 user_photo 与微信用户表 users 的读写。"""
+import random
 import time
 
 
@@ -54,7 +55,7 @@ def get_user(openid: str) -> dict | None:
 
 def _random_nickname() -> str:
     """首次注册时生成一个随机昵称，例如「衣橱用户8247」。"""
-    prefixes = ["衣橱用户", "时尚星", "穿搭控", "潮人", "随心搭"]
+    prefixes = ["衣橱用户", "时尚星", "穿搭控", "随心搭"]
     return f"{random.choice(prefixes)}{random.randint(1000, 9999)}"
 
 

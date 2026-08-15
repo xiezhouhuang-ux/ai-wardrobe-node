@@ -1,4 +1,4 @@
-/* pages/tryon/tryon.wxss —— 用户列表（统一暖色设计系统） */
+/* pages/tryon/tryon.wxss —— 用户列表（统一暖色设计系统）  */
 .tryon-page {
   min-height: 100vh;
   background: var(--color-bg, #f5ede3);

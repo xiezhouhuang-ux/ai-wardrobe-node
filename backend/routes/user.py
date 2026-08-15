@@ -17,9 +17,7 @@ router = APIRouter(tags=["user"])
 def api_get_user_photo(openid: str = Depends(require_openid)):
     """获取当前用户的全身照信息（复用旧版格式：直接返回 photo dict）。"""
     p = store.get_user_photo(openid)
-    if not p:
-        raise HTTPException(status_code=404, detail="尚未上传全身照")
-    return p
+    return p or ""
 
 
 @router.post("/api/user/photo")
@@ -42,16 +40,16 @@ async def api_upload_user_photo(photo: UploadFile = File(..., description="全�
     return {"ok": True, "url": url}
 
 
-class AvatarPayload(BaseModel):
-    avatar: str = ""
-
-
 @router.post("/api/user/avatar")
-def api_upload_avatar(payload: AvatarPayload, openid: str = Depends(require_openid)):
-    if not payload.avatar:
-        raise HTTPException(status_code=400, detail="缺少头像地址")
-    store.upsert_user(openid, None, payload.avatar)
-    return {"ok": True, "url": payload.avatar}
+async def api_upload_avatar(avatar: UploadFile = File(..., description="头像图片文件"), openid: str = Depends(require_openid)):
+    """接收小程序上传的头像文件（temp 路径），落盘后保存并返回可访问 URL。"""
+    src = save_upload(avatar)
+    try:
+        security.check_image(str(src))
+    except PermissionError as pe:
+        raise HTTPException(status_code=403, detail=f"内容未通过安全检测: {pe}")
+    url = f"/uploads/photos/{src.name}"
+    return {"ok": True, "url": url}
 
 
 @router.get("/api/user/profile")

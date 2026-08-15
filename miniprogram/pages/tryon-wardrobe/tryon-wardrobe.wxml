@@ -13,7 +13,7 @@
     <!-- 全身照已就绪 -->
     <view wx:else class="photo-row">
       <image class="user-photo" src="{{userPhoto}}" mode="aspectFill" bindtap="onPreviewPhoto"></image>
-      <text class="photo-note">✓ 底图已就绪</text>
+      <text class="photo-note badge">✓ 底图已就绪</text>
     </view>
 
     <!-- 按分类选择单品 -->
