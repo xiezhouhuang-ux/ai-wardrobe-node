@@ -46,12 +46,11 @@ Page({
     }
   },
 
-  // 点击记录：跳转试穿结果详细页（展示结果图 + 搭配单品）
+  // 点击记录：跳转专门的试穿记录详情页（仅传 recordId，详情由后端拉取）
   onOpenDetail(e) {
-    const { id, url, ids } = e.currentTarget.dataset
-    if (!url) return
-    const params = `recordId=${encodeURIComponent(id || '')}&resultUrl=${encodeURIComponent(url)}&ids=${encodeURIComponent(JSON.stringify(ids || []))}&from=records`
-    wx.navigateTo({ url: `/pages/tryon-result/tryon-result?${params}` })
+    const { id } = e.currentTarget.dataset
+    if (!id) return
+    wx.navigateTo({ url: `/pages/tryon-record-detail/tryon-record-detail?recordId=${encodeURIComponent(id)}` })
   },
 
   formatDate(ts) {

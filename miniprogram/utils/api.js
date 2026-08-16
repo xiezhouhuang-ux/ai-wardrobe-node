@@ -168,6 +168,7 @@ module.exports = {
     method: 'POST', path: '/api/tryon/save', data: { itemIds, resultUrl, target: target || '' }
   }),
   getTryOnRecords: () => request({ path: '/api/tryon/records' , authRequired: false}),
+  getTryOnRecord: (recordId) => request({ path: `/api/tryon/records/${encodeURIComponent(recordId)}`, authRequired: false }),
   deleteTryOnRecord: (recordId) => request({
     method: 'DELETE', path: `/api/tryon/records/${encodeURIComponent(recordId)}`
   })

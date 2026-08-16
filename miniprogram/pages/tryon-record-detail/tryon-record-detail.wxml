@@ -1,0 +1,38 @@
+<!--pages/tryon-record-detail/tryon-record-detail.wxml-->
+<view class="detail-page page-with-nav">
+  <nav-bar title="试穿记录" back="{{true}}"></nav-bar>
+
+  <view wx:if="{{loading}}" class="detail-loading">加载中…</view>
+
+  <view wx:elif="{{notFound}}" class="detail-empty">
+    <view class="empty-icon">🔍</view>
+    <view class="empty-text">记录不存在或已删除</view>
+  </view>
+
+  <block wx:else>
+    <view class="result-card">
+      <image class="result-img" src="{{resultUrl}}" mode="aspectFit" show-menu-by-longpress="{{true}}" bindtap="onPreviewImage"></image>
+      <view class="result-tag">AI 试穿</view>
+      <view class="result-time" wx:if="{{timeText}}">{{timeText}}</view>
+    </view>
+
+    <!-- 搭配单品 -->
+    <view class="outfit-section" wx:if="{{items.length}}">
+      <view class="outfit-title">搭配单品</view>
+      <view class="outfit-list">
+        <view class="outfit-chip" wx:for="{{items}}" wx:key="id" data-id="{{item.id}}" bindtap="onTapItem" hover-class="outfit-chip-hover">
+          <image class="outfit-chip-img" src="{{item.image}}" mode="aspectFill"></image>
+          <text class="outfit-chip-name">{{item.name || item.category || '单品'}}</text>
+          <text class="outfit-chip-color" wx:if="{{item.color}}">{{item.color}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="action-row">
+      <button class="btn btn-secondary flex-btn" bindtap="onSaveToAlbum">保存到相册</button>
+      <button class="btn btn-ghost flex-btn" bindtap="onDeleteRecord">删除记录</button>
+    </view>
+  </block>
+
+  <view class="safe-bottom"></view>
+</view>

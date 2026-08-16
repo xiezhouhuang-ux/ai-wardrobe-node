@@ -26,9 +26,5 @@
     </button>
   </view>
 
-  <view class="action-row" wx:if="{{fromRecords}}">
-    <button class="btn btn-ghost flex-btn" bindtap="onDeleteRecord">删除记录</button>
-  </view>
-
   <view class="safe-bottom"></view>
 </view>

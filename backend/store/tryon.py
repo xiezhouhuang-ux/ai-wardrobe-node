@@ -35,6 +35,21 @@ def get_tryon_records(openid: str = "") -> list:
     return [_row_to_tryon(r) for r in rows]
 
 
+def get_tryon_record(record_id: str, openid: str = "") -> dict:
+    """按 id 获取单条试穿记录详情；openid 非空时校验归属。"""
+    from store import db
+    with db.get_conn() as conn:
+        with conn.cursor() as cur:
+            if openid:
+                cur.execute("SELECT * FROM tryon_records WHERE id=%s AND openid=%s", (record_id, openid))
+            else:
+                cur.execute("SELECT * FROM tryon_records WHERE id=%s", (record_id,))
+            row = cur.fetchone()
+    if not row:
+        return None
+    return _row_to_tryon(row)
+
+
 def save_tryon_record(record: dict) -> dict:
     from store import db
     openid = record.get("openid", "")

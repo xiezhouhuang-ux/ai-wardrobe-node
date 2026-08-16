@@ -10,6 +10,7 @@
     "pages/tryon-wardrobe/tryon-wardrobe",
     "pages/tryon-result/tryon-result",
     "pages/tryon-records/tryon-records",
+    "pages/tryon-record-detail/tryon-record-detail",
     "pages/user-photo/user-photo",
     "pages/me/me",
     "pages/auth/auth"

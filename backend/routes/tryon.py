@@ -27,6 +27,14 @@ def api_tryon_records(openid: str = Depends(require_openid)):
     return store.get_tryon_records(openid)
 
 
+@router.get("/api/tryon/records/{record_id}")
+def api_tryon_record_detail(record_id: str, openid: str = Depends(require_openid)):
+    record = store.get_tryon_record(record_id, openid)
+    if not record:
+        raise HTTPException(status_code=404, detail="记录不存在")
+    return record
+
+
 @router.delete("/api/tryon/records/{record_id}")
 def api_delete_tryon_record(record_id: str, openid: str = Depends(require_openid)):
     ok = store.delete_tryon_record(record_id, openid)

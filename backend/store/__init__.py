@@ -67,6 +67,7 @@ upsert_user = _user_photo.upsert_user
 
 # 试穿记录
 get_tryon_records = _tryon.get_tryon_records
+get_tryon_record = _tryon.get_tryon_record
 save_tryon_record = _tryon.save_tryon_record
 delete_tryon_record = _tryon.delete_tryon_record
 

@@ -12,7 +12,7 @@
 
   <view wx:else class="records-list">
     <view class="record-card" wx:for="{{records}}" wx:key="id"
-          data-id="{{item.id}}" data-url="{{item.resultUrl}}" data-ids="{{item.itemIds}}" bindtap="onOpenDetail">
+        data-id="{{item.id}}" bindtap="onOpenDetail">
       <image class="record-img" src="{{item.resultUrl}}" mode="aspectFill"></image>
       <view class="record-body">
         <view class="record-date">{{item.timeText}}</view>
